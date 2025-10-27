@@ -1,0 +1,206 @@
+/* Lingua Design System — following § 3.1 (Color Palette) and § 3.4 (Flashcard) */
+:root {
+  /* § 3.1 Color Palette */
+  --color-bg-main: #222831;
+  --color-bg-section: #31363F;
+  --color-text-primary: #76ABAE;
+  --color-text-secondary: #EEEEEE;
+  --color-button-bg: #31363F;
+  --color-button-text: #EEEEEE;
+  --color-button-hover: #415780;
+  /* § 3.4 Flashcard */
+  --color-flashcard-bg: #435446;
+  --color-flashcard-text: #9ab0a2;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base layout and typography — aligns with § 3.1 */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text-secondary);
+  margin: 0.5rem 0;
+}
+
+p, span, li {
+  color: var(--color-text-primary);
+}
+
+a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  color: var(--color-button-hover);
+  text-decoration: underline;
+}
+
+/* Section containers — § 3.1 Section/Div Backgrounds */
+.section {
+  background-color: var(--color-bg-section);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Buttons — § 3.1 Button styles */
+button,
+.btn {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: var(--color-button-bg);
+  color: var(--color-button-text);
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+button:hover,
+.btn:hover {
+  background-color: var(--color-button-hover);
+}
+
+button:disabled,
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Accessible focus outlines — § 4.3 Review Process */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--color-button-hover);
+  outline-offset: 2px;
+}
+
+/* Navigation scaffolding — § 3.2 Navigation Bar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 56px;
+  background-color: var(--color-bg-section);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+}
+
+.navbar .brand {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.navbar .actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.navbar .actions .btn {
+  min-width: 88px;
+}
+
+/* Homepage centering — § 3.3 */
+.main-centered {
+  min-height: calc(100vh - 56px);
+  display: grid;
+  place-items: center;
+}
+
+/* Flashcard component — § 3.4 */
+.flashcard {
+  width: clamp(260px, 60vw, 420px);
+  height: clamp(160px, 40vh, 280px);
+  perspective: 1000px;
+}
+
+.flashcard .card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  transform-style: preserve-3d;
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.flashcard.is-flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.flashcard .card-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: var(--color-flashcard-bg);
+  color: var(--color-flashcard-text);
+  backface-visibility: hidden;
+  border-radius: 12px;
+  padding: 1rem;
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.flashcard .card-back {
+  transform: rotateY(180deg);
+}
+
+.flashcard-controls {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* Utility */
+.visually-hidden {
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+.centered {
+  display: grid;
+  place-items: center;
+}

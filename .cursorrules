@@ -1,0 +1,163 @@
+# Lingua Project Guidelines
+
+## § 1.0 Instructions for AI Agent
+
+When carrying out tasks for this project, you MUST:
+- Reference relevant sections from these guidelines when making decisions
+- Explicitly mention which sections (by number and name) you are following
+- Consult the Architecture Documentation (§ 4.4) before making significant changes
+- Adhere to the Code Review Standards (§ 4.0) for all code contributions
+- Follow the Design System (§ 2.2) for all UI/UX work
+- Git: use Conventional Commits with scope and follow `git-workflow.md`
+
+---
+
+## § 2.0 Project Overview
+
+I am a language learner who is trying to practice the vocabulary she is learning. As of now, there is not a flashcard tool accessible online that meets her needs. Often, flashcard apps have too many features or require a membership. She wants an app/website that she can use both on her laptop and mobile devices (phone and tablet) that she can use to create and practice the vocabulary. She wants a simple website that focuses on creating and practicing the vocabulary. As for an organizational system, she would like the flashcards to be organizable such as by topic (color, food, places, etc.) via a tagging system. Also it would be nice to have a feature that allows the flashcards to be organized into folders which could be named after the date they were created or a lesson where she found the words. The goal is to keep the app/website simple. All coding, when able to, should be done using Svelte.
+
+---
+
+## § 3.0 Design System and Layout
+
+### § 3.1 Color Palette
+
+**Applicable to all pages of the website unless given clear direction to use a different color**
+
+- **Main Background:** `#222831`
+- **Section/Div Backgrounds:** `#31363F`
+- **Primary Text:**` #76ABAE`
+- **Secondary Text/Subheadings:**`#EEEEEE`
+- **Button Background:**  `#31363F`
+- **Button Text:**  `#EEEEEE`
+- **Button Hover:**`#415780`
+
+### § 3.2 Navigation Bar
+
+- Rather than a traditional navigation bar, there will be three buttons on the right hand side laid out horizontally with even spacing that is appealing to the eye:
+  - One button should say "login" and lead to a login page (other features of this page will be added later)
+  - One button should say "create" and leads to a create page (other features of this page will be added later)
+  - One button should say "lexicon" that will lead to a page that lists all the words they have added or created (other features of this page will be added later)
+- On the top left corner should be the word FLIP and when clicked should lead back to the home page
+- Navigation bar should be featured on every page of the website
+
+### § 3.3 Homepage
+
+- Centered on the page should be the flashcard
+
+### § 3.4 Flashcard Component
+
+- The flashcard should be in this color `#435446` with the text in this color `#9ab0a2`
+- The flashcard should have a smooth flipping motion
+- The front of the card should use the target language (for now use Korean and as a placeholder use the Korean word for hello = 안녕하세요)
+- The back of the card should use the user's native language (for now use English and as a placeholder use the word "hello" as the translation)
+- Beneath the flashcard, but not part of the flashcard should be three buttons:
+  - One button that toggles the flip (button should be named "flip")
+  - One button that moves onto the next card (button should be named "next")
+  - One button that shuffles the set (button should be named "shuffle")
+
+### § 3.5 Create Page
+
+- On this page there should be two columns where the user can input information:
+  - One column to input vocabulary for the target language
+  - One column to input the translation in the native language
+- Only have one row as a placeholder for now
+- Underneath the two columns should be two buttons:
+  - One button should say "import"
+  - One button should say "submit"
+- On the right hand side should be a space with a subheading that says "tags" (further instruction will be given on this section. As a placeholder use the text "#text")
+
+### § 3.6 Login Page
+
+*(To be defined)*
+
+---
+
+## § 4.0 Code Review Standards
+
+This section defines how we review code for the FLIP project. Use it for PR reviews, self-reviews, and pre-merge checks.
+
+### § 4.1 Core Principles
+
+- **Readability:** Clear, concise code with meaningful names
+- **SRP/DRY/Modularity:** Single responsibility, avoid duplication, and maintain clear component boundaries
+- **Idiomatic Usage:** Follow official patterns for Svelte 5/SvelteKit
+- **Technical Debt:** Remove bloat and redundancies as you touch code
+- **Error Handling:** Consistent, actionable errors; no swallowed exceptions
+- **Security & Performance:** No new vulnerabilities; no unexpected regressions
+
+### § 4.2 Review Checklist
+
+#### § 4.2.1 Functional Correctness
+
+- No regressions; existing behaviors preserved
+- Edge cases identified and handled
+
+#### § 4.2.2 Maintainability and Design
+
+- Code is easy to read and navigate
+- Adheres to Single Responsibility Principle (SRP)
+- Eliminates duplication (DRY)
+- Eliminates any unused variables
+- Decoupled, modular components with clear boundaries
+- Uses idiomatic project/library patterns
+- Removes legacy code and bloat where feasible
+- Consistent, appropriate error handling
+
+#### § 4.2.3 Compliance and Security
+
+- No new security flaws; auth and data access patterns respected
+- No unexpected performance degradation or resource spikes
+
+#### § 4.2.4 Architecture & Patterns Alignment
+
+- Domain-driven multi-store architecture is respected
+- Smart Store pattern is followed for feature-domain stores
+- Svelte 5 Runes patterns and accessibility requirements are followed
+- Optimistic UI patterns are used for mutations where appropriate
+
+### § 4.3 Review Process
+
+- Verify accessibility and keyboard navigation for interactive UI
+- Prefer concrete suggestions and links to guidelines when requesting changes
+
+### § 4.4 Architecture Documentation
+
+The `web/documentation/architecture` folder contains several files that provide detailed information about the system's design. When working on related tasks, please refer to the relevant file as described below:
+
+#### § 4.4.1 System Overview (`00-system-overview.md`)
+
+- **Purpose:** Provides a high-level summary of the FLIP application, its goals, and a diagram of the overall architecture
+- **When to reference:** For general understanding of the system, client/server boundaries, and the main technology stack
+
+#### § 4.4.2 Domain-Driven Multi-Store Approach (`01-domain-driven-multistore.md`)
+
+- **Purpose:** Explains the rationale and implementation of the domain-driven multi-store pattern used for state management
+- **When to reference:** When designing, updating, or reviewing stores, or when considering how data flows through the application
+
+#### § 4.4.3 Smart Store Pattern (`02-smart-store-pattern.md`)
+
+- **Purpose:** Details the Smart Store pattern, including best practices for encapsulating business logic within stores
+- **When to reference:** When implementing or refactoring stores to ensure they follow the Smart Store pattern
+
+#### § 4.4.4 Component and Page Structure (`03-component-page-structure.md`)
+
+- **Purpose:** Outlines the organization of UI components and pages, including naming conventions and recommended boundaries
+- **When to reference:** When creating new components/pages or reorganizing existing ones
+
+#### § 4.4.5 Data Flow and Interactions (`04-data-flow-and-interactions.md`)
+
+- **Purpose:** Describes how data moves between stores, components, and external services
+- **When to reference:** When troubleshooting data issues, optimizing performance, or integrating new features
+
+**General Guidance:**  
+Always consult the relevant architecture file(s) before making significant changes to the codebase. This ensures consistency with project patterns and helps maintain long-term maintainability and clarity.
+
+### § 4.5 Agent Guidelines
+
+The `web/documentation/agent-guidelines` folder contains specific guidelines for common development tasks.
+
+#### § 4.5.1 Icon Usage Guidelines (`icon-usage-guidelines.md`)
+
+- **Purpose:** Defines how to use the Svelte 5 icon components, including prop usage, color palette integration, and import patterns
+- **When to reference:** When adding icons to components, creating new icon components, or working with visual elements that need icons
