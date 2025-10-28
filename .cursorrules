@@ -14,7 +14,7 @@ When carrying out tasks for this project, you MUST:
 
 ## § 2.0 Project Overview
 
-I am a language learner who is trying to practice the vocabulary she is learning. As of now, there is not a flashcard tool accessible online that meets her needs. Often, flashcard apps have too many features or require a membership. She wants an app/website that she can use both on her laptop and mobile devices (phone and tablet) that she can use to create and practice the vocabulary. She wants a simple website that focuses on creating and practicing the vocabulary. As for an organizational system, she would like the flashcards to be organizable such as by topic (color, food, places, etc.) via a tagging system. Also it would be nice to have a feature that allows the flashcards to be organized into folders which could be named after the date they were created or a lesson where she found the words. The goal is to keep the app/website simple. All coding, when able to, should be done using Svelte.
+I am a language learner who is trying to develop her grammar and vocabulary knowlege by parsing sentences and morphemes. As of now, there is not a flashcard tool accessible online that meets my needs. I wants an app/website that I can use both on my laptop and mobile devices (phone and tablet) where I can pratice parsing sentences and review learned grammar concepts and vocabulary. I want a simple website that focuses on creating sentences, forming parsing notes, and reviewing learned concepts. As for an organizational system, I would like the sentences to be organizable such as by topic (business, leisure, ordering, hobbies etc.) via a tagging system. All flashcards made from the parsed sentences should also be organized by tags (part of speech, content area, etc.) Also, for organizational purpose, every sentence or morpheme should have a created date, last reviewed date, number of vocabulary words, and number of grammar concepts tied to the one sentence. The goal is to keep the app/website simple. All coding, when able to, should be done using Svelte.
 
 ---
 
@@ -24,13 +24,13 @@ I am a language learner who is trying to practice the vocabulary she is learning
 
 **Applicable to all pages of the website unless given clear direction to use a different color**
 
-- **Main Background:** `#222831`
-- **Section/Div Backgrounds:** `#31363F`
-- **Primary Text:**` #76ABAE`
-- **Secondary Text/Subheadings:**`#EEEEEE`
-- **Button Background:**  `#31363F`
-- **Button Text:**  `#EEEEEE`
-- **Button Hover:**`#415780`
+- **Main Background:** `#222831` (dark grey)
+- **Section/Div Backgrounds:** `#31363F` (light grey)
+- **Primary Text:**` #76ABAE` (Light blue)
+- **Secondary Text/Subheadings:**`#EEEEEE` (off white)
+- **Button Background:**  `#31363F` (light grey)
+- **Button Text:**  `#EEEEEE` (off white)
+- **Button Hover:**`#415780`(differnet light blue)
 
 ### § 3.2 Navigation Bar
 
@@ -38,34 +38,18 @@ I am a language learner who is trying to practice the vocabulary she is learning
   - One button should say "login" and lead to a login page (other features of this page will be added later)
   - One button should say "create" and leads to a create page (other features of this page will be added later)
   - One button should say "lexicon" that will lead to a page that lists all the words they have added or created (other features of this page will be added later)
-- On the top left corner should be the word FLIP and when clicked should lead back to the home page
+- On the top left corner should be the word LINGUA and when clicked should lead back to the home page
 - Navigation bar should be featured on every page of the website
 
 ### § 3.3 Homepage
 
 - Centered on the page should be the flashcard
 
-### § 3.4 Flashcard Component
+### § 3.4 Icons
 
-- The flashcard should be in this color `#435446` with the text in this color `#9ab0a2`
-- The flashcard should have a smooth flipping motion
-- The front of the card should use the target language (for now use Korean and as a placeholder use the Korean word for hello = 안녕하세요)
-- The back of the card should use the user's native language (for now use English and as a placeholder use the word "hello" as the translation)
-- Beneath the flashcard, but not part of the flashcard should be three buttons:
-  - One button that toggles the flip (button should be named "flip")
-  - One button that moves onto the next card (button should be named "next")
-  - One button that shuffles the set (button should be named "shuffle")
-
-### § 3.5 Create Page
-
-- On this page there should be two columns where the user can input information:
-  - One column to input vocabulary for the target language
-  - One column to input the translation in the native language
-- Only have one row as a placeholder for now
-- Underneath the two columns should be two buttons:
-  - One button should say "import"
-  - One button should say "submit"
-- On the right hand side should be a space with a subheading that says "tags" (further instruction will be given on this section. As a placeholder use the text "#text")
+- All icons should be formed into a svelte component 
+- All icons should have a stroke size of 1
+- All icons, unless specified should be in `#EEEEEE`
 
 ### § 3.6 Login Page
 
@@ -75,7 +59,7 @@ I am a language learner who is trying to practice the vocabulary she is learning
 
 ## § 4.0 Code Review Standards
 
-This section defines how we review code for the FLIP project. Use it for PR reviews, self-reviews, and pre-merge checks.
+This section defines how we review code for the LINGUA project. Use it for PR reviews, self-reviews, and pre-merge checks.
 
 ### § 4.1 Core Principles
 
@@ -127,7 +111,7 @@ The `web/documentation/architecture` folder contains several files that provide 
 
 #### § 4.4.1 System Overview (`00-system-overview.md`)
 
-- **Purpose:** Provides a high-level summary of the FLIP application, its goals, and a diagram of the overall architecture
+- **Purpose:** Provides a high-level summary of the LINGUA application, its goals, and a diagram of the overall architecture
 - **When to reference:** For general understanding of the system, client/server boundaries, and the main technology stack
 
 #### § 4.4.2 Domain-Driven Multi-Store Approach (`01-domain-driven-multistore.md`)

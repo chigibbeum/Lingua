@@ -1,85 +1,107 @@
 <script lang="ts">
-  let entry: string = ''
+  import { sessionStore } from './stores/session'
+  import { SvelteFlow } from '@xyflow/svelte'
+  import { get } from 'svelte/store'
+  import Toolbar from './Toolbar.svelte'
 
-  function handleSubmit() {
-    console.log('Submitted:', entry)
+  let sentenceLocal: string = ''
+
+  function confirmText() {
+    sessionStore.updateSentence(sentenceLocal)
+    sessionStore.beginParse()
+  }
+  function startNewIfNeeded() {
+    const state = get(sessionStore)
+    if (!state.current) {
+      sessionStore.startNew()
+    }
+  }
+  function onInput(e: Event) {
+    sentenceLocal = (e.target as HTMLTextAreaElement).value
+    sessionStore.updateSentence(sentenceLocal)
   }
 </script>
 
 <main class="home">
-  <section class="home-card" aria-labelledby="home-title">
-    <h1 id="home-title" class="home-title">Practice</h1>
-    <form class="home-form" on:submit|preventDefault={handleSubmit}>
-      <label class="field-label" for="entry">Enter text</label>
-      <div class="form-row">
-        <input
-          id="entry"
-          name="entry"
-          type="text"
-          bind:value={entry}
-          placeholder="Type here..."
-          aria-label="Text entry"
-          class="text-input"
-          required
-        />
-        <button type="submit" class="submit-btn">submit</button>
+  <Toolbar />
+  <section class="canvas" aria-label="Text entry">
+    <div class="floating-box" role="group" aria-label="Text editor">
+      <textarea
+        class="floating-input"
+        placeholder="Add new text..."
+        bind:value={sentenceLocal}
+        on:focus={startNewIfNeeded}
+        on:input={onInput}
+        rows="5"
+      ></textarea>
+      <div class="actions">
+        <button type="button" on:click={confirmText}>confirm</button>
       </div>
-    </form>
+    </div>
   </section>
+
+  {#if $sessionStore.mode === 'parsing' && $sessionStore.current}
+    <section class="parser" aria-label="Parsing canvas">
+      <div class="flow-wrapper">
+        <SvelteFlow nodes={$sessionStore.current.nodes} edges={$sessionStore.current.edges} />
+      </div>
+    </section>
+  {/if}
 </main>
 
 <style>
   .home {
+    min-height: calc(100vh - 56px);
     display: grid;
     place-items: center;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
   }
-  .home-card {
-    width: 100%;
-    max-width: 640px;
-    background-color: #31363F;
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  }
-  .home-title {
-    margin: 0 0 1rem 0;
-    color: #EEEEEE;
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-  .home-form {
+  .canvas {
+    width: min(900px, 92vw);
     display: grid;
-    gap: 0.5rem;
+    place-items: center;
   }
-  .field-label {
-    color: #EEEEEE;
-    font-size: 0.9rem;
+  .floating-box {
+    width: 100%;
+    background-color: #31363f; /* § 3.1 Section background */
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    display: grid;
+    gap: 0.75rem;
   }
-  .form-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .text-input {
-    flex: 1 1 auto;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
+  .floating-input {
+    width: 100%;
+    background: #31363f;
+    color: #eeeeee;
+    border-radius: 10px;
     border: 1px solid transparent;
-    background-color: #31363F;
-    color: #EEEEEE;
-    outline: none;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    padding: 0.75rem 0.9rem;
+    resize: vertical;
+    min-height: 120px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   }
-  .text-input::placeholder {
-    color: #EEEEEE;
+  .floating-input::placeholder {
+    color: #eeeeee;
     opacity: 0.6;
   }
-  .text-input:focus {
-    box-shadow: inset 0 0 0 2px #415780;
+  .floating-input:focus {
+    box-shadow: inset 0 0 0 2px #415780; /* § 3.1 Button hover as focus */
+    outline: none;
   }
-  .submit-btn {
-    white-space: nowrap;
+  .actions {
+    display: flex;
+    justify-content: end;
+  }
+  .parser {
+    width: min(1100px, 96vw);
+    margin-top: 1rem;
+    background-color: #31363f;
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+  .flow-wrapper {
+    height: 420px;
   }
 </style>
-
