@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     let { 
         stroke = 'currentColor', 
         fill = 'none', 
@@ -13,9 +13,11 @@
 width={size}   height={size}  viewBox="0 0 24 24" fill={fill}    
 stroke={stroke} stroke-width={strokeWidth} 
 stroke-linecap="round" stroke-linejoin="round" 
-class={className} role="img" 
+class={className} 
+role="img" 
 aria-label={ariaLabel}
 >
+<title>{ariaLabel}</title>
 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
 <path d="M14 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
 <path d="M4 6l8 0" />

@@ -1,6 +1,7 @@
 import { mount } from 'svelte'
 import './app.css'
 import '@xyflow/svelte/dist/style.css'
+import './lib/firebase'
 import App from './App.svelte'
 
 const app = mount(App, {

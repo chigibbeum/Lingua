@@ -1,52 +1,29 @@
 <script lang="ts">
-  import { sessionStore } from './stores/session'
-  import { SvelteFlow } from '@xyflow/svelte'
-  import { get } from 'svelte/store'
-  import Toolbar from './Toolbar.svelte'
-
-  let sentenceLocal: string = ''
-
-  function confirmText() {
-    sessionStore.updateSentence(sentenceLocal)
-    sessionStore.beginParse()
-  }
-  function startNewIfNeeded() {
-    const state = get(sessionStore)
-    if (!state.current) {
-      sessionStore.startNew()
-    }
-  }
-  function onInput(e: Event) {
-    sentenceLocal = (e.target as HTMLTextAreaElement).value
-    sessionStore.updateSentence(sentenceLocal)
-  }
+  import Abc from '../icons/Abc.svelte'
+  import Flashcard from '../icons/Flashcard.svelte'
+  
+  let { onNavigate }: { onNavigate: (route: 'parse' | 'flashcard') => void } = $props()
 </script>
 
 <main class="home">
-  <Toolbar />
-  <section class="canvas" aria-label="Text entry">
-    <div class="floating-box" role="group" aria-label="Text editor">
-      <textarea
-        class="floating-input"
-        placeholder="Add new text..."
-        bind:value={sentenceLocal}
-        on:focus={startNewIfNeeded}
-        on:input={onInput}
-        rows="5"
-      ></textarea>
-      <div class="actions">
-        <button type="button" on:click={confirmText}>confirm</button>
-      </div>
-    </div>
-  </section>
-
-  {#if $sessionStore.mode === 'parsing' && $sessionStore.current}
-    <section class="parser" aria-label="Parsing canvas">
-      <div class="flow-wrapper">
-        <SvelteFlow nodes={$sessionStore.current.nodes} edges={$sessionStore.current.edges} />
-      </div>
-    </section>
-  {/if}
+  <div class="icons-container">
+    <button 
+      class="icon-button" 
+      type="button"
+      onclick={() => onNavigate('parse')}
+      aria-label="Navigate to Parse Mode"
+    >
+      <Abc size={64} />
+    </button>
+    <button 
+      class="icon-button" 
+      type="button"
+      onclick={() => onNavigate('flashcard')}
+      aria-label="Navigate to Flashcard Mode"
+    >
+      <Flashcard size={64} />
+    </button>
+  </div>
 </main>
 
 <style>
@@ -56,52 +33,30 @@
     place-items: center;
     padding: 1.5rem 1rem;
   }
-  .canvas {
-    width: min(900px, 92vw);
+  
+  .icons-container {
     display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
     place-items: center;
   }
-  .floating-box {
-    width: 100%;
-    background-color: #31363f; /* § 3.1 Section background */
-    border-radius: 12px;
+  
+  .icon-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
     padding: 1rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
-    display: grid;
-    gap: 0.75rem;
-  }
-  .floating-input {
-    width: 100%;
-    background: #31363f;
-    color: #eeeeee;
-    border-radius: 10px;
-    border: 1px solid transparent;
-    padding: 0.75rem 0.9rem;
-    resize: vertical;
-    min-height: 120px;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  }
-  .floating-input::placeholder {
-    color: #eeeeee;
-    opacity: 0.6;
-  }
-  .floating-input:focus {
-    box-shadow: inset 0 0 0 2px #415780; /* § 3.1 Button hover as focus */
-    outline: none;
-  }
-  .actions {
-    display: flex;
-    justify-content: end;
-  }
-  .parser {
-    width: min(1100px, 96vw);
-    margin-top: 1rem;
-    background-color: #31363f;
     border-radius: 12px;
-    padding: 0.5rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    transition: background-color 0.2s;
+    color: #eeeeee;
   }
-  .flow-wrapper {
-    height: 420px;
+  
+  .icon-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .icon-button:focus {
+    outline: 2px solid #415780;
+    outline-offset: 2px;
   }
 </style>

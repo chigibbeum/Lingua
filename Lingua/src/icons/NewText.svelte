@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     let { 
         stroke = 'currentColor', 
         fill = 'none', 
@@ -18,6 +18,7 @@
   role="img"
   aria-label={ariaLabel}
 >
+<title>{ariaLabel}</title>
   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
   <path d="M3 7v-2h13v2"></path>
   <path d="M10 5v14"></path>

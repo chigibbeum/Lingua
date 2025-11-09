@@ -18,6 +18,7 @@
     role="img"
     aria-label={ariaLabel}
 >
+    <title>{ariaLabel}</title>
     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
     
     <path d="M3.604 7.197l7.138 -3.109a.96 .96 0 0 1 1.27 .527l4.924 11.902a1 1 0 0 1 -.514 1.304l-7.137 3.109a.96 .96 0 0 1 -1.271 -.527l-4.924 -11.903a1 1 0 0 1 .514 -1.304z" />
