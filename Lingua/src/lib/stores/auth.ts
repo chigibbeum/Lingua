@@ -19,6 +19,7 @@ export const user = writable<User | null>(null)
 // Derived stores
 export const userId = derived(user, u => (u ? u.uid : null))
 export const isLoggedIn = derived(user, u => Boolean(u && u.uid))
+export const authReady = writable(false)
 
 let initialized = false
 function initAuthListener() {
@@ -26,6 +27,7 @@ function initAuthListener() {
   initialized = true
   onAuthStateChanged(auth, current => {
     user.set(current)
+    authReady.set(true)
   })
 }
 

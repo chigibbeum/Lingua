@@ -2,7 +2,7 @@
   import CheckAllIcon from '@icons/CheckAllIcon.svelte'
   import type { ParseSession } from '@lib/stores/session'
   import { listRecentVocabNotes, type RecentVocabNote } from '@lib/services/noteService'
-  import { createFlashcardsFromVocabNotes, type VocabFlashInput } from '@lib/services/flashcardService'
+  import { listVocabFlashcardsBySentenceText, createFlashcardsFromVocabNotes, type VocabFlashInput } from '@lib/services/flashcardService'
 
   let {
     isOpen = $bindable(false),
@@ -54,6 +54,13 @@
     return acc
   }
 
+  function dedupKey(it: { sentenceText?: string; front?: string; back?: string }): string {
+    const sent = String(it.sentenceText ?? '').trim().toLowerCase()
+    const front = String(it.front ?? '').trim().toLowerCase()
+    const back = String(it.back ?? '').trim().toLowerCase()
+    return `${sent}||${front}||${back}`
+  }
+
   async function loadData() {
     isLoading = true
     error = null
@@ -68,11 +75,24 @@
         createdAt: r.createdAt,
       }))
       const sessionItems = normalizeSessionItems(session)
-      // Merge by id, prefer session entries for richer context
-      const map = new Map<string, VocabItem>()
-      for (const it of recentItems) map.set(it.id, it)
-      for (const it of sessionItems) map.set(it.id, it)
-      const merged = Array.from(map.values())
+      // Merge by content key; prefer session entries for richer context
+      const byKey = new Map<string, VocabItem>()
+      for (const it of recentItems) byKey.set(dedupKey(it), it)
+      for (const it of sessionItems) byKey.set(dedupKey(it), it)
+      let merged = Array.from(byKey.values())
+
+      // If a current sentence is available, focus on it and hide notes already flashcarded
+      const sentenceText = session?.sentence?.trim()
+      if (sentenceText) {
+        const sentenceLc = sentenceText.toLowerCase()
+        merged = merged.filter(it => (it.sentenceText ?? '').trim().toLowerCase() === sentenceLc)
+        const existing = await listVocabFlashcardsBySentenceText(sentenceText)
+        const existingKeys = new Set(
+          existing.map(fc => dedupKey({ sentenceText, front: fc.front, back: fc.back }))
+        )
+        merged = merged.filter(it => !existingKeys.has(dedupKey(it)))
+      }
+
       merged.sort((a, b) => {
         const at = a.createdAt ? Date.parse(a.createdAt) : 0
         const bt = b.createdAt ? Date.parse(b.createdAt) : 0

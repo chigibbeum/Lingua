@@ -1,8 +1,22 @@
 <script lang="ts">
-  import { listSentences, type SentenceDoc, type SentenceNote, listSentenceNotes } from './services/sentenceService'
+  import {
+    listSentences,
+    listSentenceNotes,
+    saveSentenceNotes,
+    updateSentence,
+    deleteSentence,
+    type SentenceDoc,
+    type SentenceNote
+  } from './services/sentenceService'
   import Calendar from '@icons/Calendar.svelte'
   import Filter from '@icons/Filter.svelte'
   import Sort from '@icons/Sort.svelte'
+  import EditText from '@icons/EditText.svelte'
+  import AddNote from '@icons/AddNote.svelte'
+  import DeleteGarbageIcon from '@icons/DeleteGarbageIcon.svelte'
+  import SelectIcon from '@icons/SelectIcon.svelte'
+  import SelectAllIcon from '@icons/SelectAllIcon.svelte'
+  import { tick } from 'svelte'
 
   let {
     open,
@@ -19,6 +33,208 @@
   let notes: SentenceNote[] = $state([])
   let isLoadingNotes = $state(false)
   let notesError: string | null = $state(null)
+
+  // Editing sentence text
+  let isEditing = $state(false)
+  let editText = $state('')
+  let isSavingEdit = $state(false)
+  let editError: string | null = $state(null)
+  let isDeleting = $state(false)
+  let deleteError: string | null = $state(null)
+
+  // Sort
+  let sortOrder: 'newest' | 'oldest' = $state('newest')
+  function toggleSort() {
+    sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest'
+  }
+
+  // Filter (date range via popover)
+  let showFilter = $state(false)
+  let filter = $state<{ from?: string; to?: string }>({})
+  function clearFilter() { filter = {} }
+  let fromDateInput: HTMLInputElement | null = $state(null)
+  async function openFilter(focusDates: boolean) {
+    showFilter = !showFilter || focusDates
+    if (showFilter && focusDates) {
+      await tick()
+      fromDateInput?.focus()
+    }
+  }
+
+  // Selection / bulk delete
+  let selectionMode = $state(false)
+  let selectedIds = $state<Set<string>>(new Set())
+  function toggleSelectionMode() {
+    selectionMode = !selectionMode
+    if (!selectionMode) selectedIds = new Set()
+  }
+  function isSelected(id: string) { return selectedIds.has(id) }
+  function toggleSelect(id: string) {
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    selectedIds = next
+  }
+
+  // Apply filter + sort for display
+  let visibleSentences = $state<SentenceDoc[]>([])
+  let allVisibleSelected = $state(false)
+  $effect(() => {
+    let arr = [...sentences]
+    if (filter.from) {
+      const from = new Date(filter.from)
+      arr = arr.filter(s => s.createdAt && new Date(s.createdAt) >= from)
+    }
+    if (filter.to) {
+      const to = new Date(filter.to)
+      to.setDate(to.getDate() + 1) // inclusive end
+      arr = arr.filter(s => s.createdAt && new Date(s.createdAt) < to)
+    }
+    arr.sort((a, b) => {
+      const aT = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bT = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return sortOrder === 'newest' ? (bT - aT) : (aT - bT)
+    })
+    // Compute selection state from the local array to avoid reading the state we are writing,
+    // which would create a self-dependency loop in this effect.
+    allVisibleSelected = arr.length > 0 && arr.every(s => selectedIds.has(s.id))
+    visibleSentences = arr
+  })
+  function selectAllVisible() {
+    if (allVisibleSelected) {
+      selectedIds = new Set([...selectedIds].filter(id => !visibleSentences.some(s => s.id === id)))
+    } else {
+      const next = new Set(selectedIds)
+      visibleSentences.forEach(s => next.add(s.id))
+      selectedIds = next
+    }
+  }
+
+  async function deleteSelectedMany() {
+    if (selectedIds.size === 0) return
+    if (!window.confirm(`Delete ${selectedIds.size} selected sentence(s) and their notes?`)) return
+    isDeleting = true
+    deleteError = null
+    try {
+      const ids = Array.from(selectedIds)
+      for (const id of ids) {
+        await deleteSentence(id)
+      }
+      sentences = sentences.filter(s => !selectedIds.has(s.id))
+      selected = sentences[0] ?? null
+      await loadNotesForSelected()
+      selectedIds = new Set()
+      selectionMode = false
+    } catch (e) {
+      deleteError = 'Failed to delete selected sentences'
+    } finally {
+      isDeleting = false
+    }
+  }
+
+  function startEdit() {
+    if (!selected) return
+    isEditing = true
+    editText = selected.text
+  }
+  function cancelEdit() {
+    isEditing = false
+    editError = null
+  }
+  async function saveEdit() {
+    if (!selected) return
+    isSavingEdit = true
+    editError = null
+    try {
+      await updateSentence(selected.id, { text: editText })
+      const updated = { ...selected, text: editText.trim() }
+      selected = updated
+      sentences = sentences.map(s => (s.id === updated.id ? updated : s))
+      isEditing = false
+    } catch (e) {
+      editError = 'Failed to update sentence'
+    } finally {
+      isSavingEdit = false
+    }
+  }
+
+  async function deleteSelected() {
+    if (!selected) return
+    const confirmed = window.confirm('Delete this sentence and all of its notes?')
+    if (!confirmed) return
+    isDeleting = true
+    deleteError = null
+    const currentId = selected.id
+    const currentIndex = sentences.findIndex(s => s.id === currentId)
+    try {
+      await deleteSentence(currentId)
+      const remaining = sentences.filter(s => s.id !== currentId)
+      sentences = remaining
+      isEditing = false
+      if (remaining.length > 0) {
+        const nextIndex = Math.min(Math.max(0, currentIndex), remaining.length - 1)
+        selected = remaining[nextIndex]!
+        await loadNotesForSelected()
+      } else {
+        selected = null
+        notes = []
+      }
+    } catch (e) {
+      deleteError = 'Failed to delete sentence'
+    } finally {
+      isDeleting = false
+    }
+  }
+
+  // Adding a note
+  let isAddingNote = $state(false)
+  let noteType: 'vocab' | 'grammar' = $state('vocab')
+  let noteTarget = $state('')
+  let noteNative = $state('')
+  let noteText = $state('')
+  let isSavingNote = $state(false)
+  let noteError: string | null = $state(null)
+
+  function resetNoteForm() {
+    noteType = 'vocab'
+    noteTarget = ''
+    noteNative = ''
+    noteText = ''
+  }
+  function cancelAddNote() {
+    isAddingNote = false
+    noteError = null
+    resetNoteForm()
+  }
+  async function saveNote() {
+    if (!selected) return
+    isSavingNote = true
+    noteError = null
+    try {
+      if (noteType === 'vocab') {
+        const target = noteTarget.trim()
+        const native = noteNative.trim()
+        if (!target || !native) {
+          noteError = 'Both “Target” and “Native” are required'
+          return
+        }
+        await saveSentenceNotes(selected.id, [{ type: 'vocab', target, native }])
+      } else {
+        const text = noteText.trim()
+        if (!text) {
+          noteError = 'Note text is required'
+          return
+        }
+        await saveSentenceNotes(selected.id, [{ type: 'grammar', text }])
+      }
+      await loadNotesForSelected()
+      isAddingNote = false
+      resetNoteForm()
+    } catch (e) {
+      noteError = 'Failed to save note'
+    } finally {
+      isSavingNote = false
+    }
+  }
 
   function formatDate(value: string | null | undefined): string {
     if (!value) return ''
@@ -100,20 +316,64 @@
             <header class="left-header">
               <h3 class="left-title">Saved Sentences</h3>
               <div class="icon-row" aria-label="Library tools">
-                <button class="icon-btn" type="button" aria-label="Sort">
+                <button class="icon-btn" type="button" aria-label={`Sort (${sortOrder})`} onclick={toggleSort}>
                   <Sort size={18} stroke="#eeeeee" strokeWidth={1.5} />
                 </button>
-                <button class="icon-btn" type="button" aria-label="Filter">
-                  <Filter size={18} stroke="#eeeeee" strokeWidth={1.5} />
-                </button>
-                <button class="icon-btn" type="button" aria-label="Date">
+
+                <div style="position: relative;">
+                  <button class="icon-btn" type="button" aria-label="Filter" onclick={() => openFilter(false)}>
+                    <Filter size={18} stroke="#eeeeee" strokeWidth={1.5} />
+                  </button>
+
+                  {#if showFilter}
+                    <div class="filter-popover" role="dialog" aria-label="Filter sentences">
+                      <label>From <input id="filter-from" name="filter-from" type="date" bind:value={filter.from} bind:this={fromDateInput} /></label>
+                      <label>To <input id="filter-to" name="filter-to" type="date" bind:value={filter.to} /></label>
+                      <div style="display:flex; gap:.5rem; justify-content:flex-end; margin-top:.5rem;">
+                        <button class="primary" type="button" onclick={() => showFilter = false}>Apply</button>
+                        <button class="icon-btn" type="button" onclick={clearFilter}>Clear</button>
+                      </div>
+                    </div>
+                  {/if}
+                </div>
+
+                <button class="icon-btn" type="button" aria-label="Date filter" onclick={() => openFilter(true)}>
                   <Calendar size={18} stroke="#eeeeee" strokeWidth={1.5} />
                 </button>
+
+                <button
+                  class="icon-btn"
+                  type="button"
+                  aria-label={selectionMode ? 'Exit select mode' : 'Select items'}
+                  onclick={toggleSelectionMode}
+                >
+                  <SelectIcon size={18} stroke="#eeeeee" strokeWidth={1.5} ariaLabel="Select" />
+                </button>
+
+                {#if selectionMode}
+                  <button
+                    class="icon-btn"
+                    type="button"
+                    aria-label={allVisibleSelected ? 'Clear selection' : 'Select all'}
+                    onclick={selectAllVisible}
+                  >
+                    <SelectAllIcon size={18} stroke="#eeeeee" strokeWidth={1.5} ariaLabel="Select All" />
+                  </button>
+                  <button
+                    class="icon-btn"
+                    type="button"
+                    aria-label="Delete selected"
+                    disabled={selectedIds.size === 0 || isDeleting}
+                    onclick={deleteSelectedMany}
+                  >
+                    <DeleteGarbageIcon size={18} stroke="#eeeeee" strokeWidth={1.5} />
+                  </button>
+                {/if}
               </div>
             </header>
 
             <ul role="listbox" class="sentence-list">
-              {#each sentences as s}
+              {#each visibleSentences as s}
                 <li
                   role="option"
                   class="sentence-item"
@@ -123,6 +383,16 @@
                   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { selected = s; loadNotesForSelected() } }}
                   tabindex="0"
                 >
+                  {#if selectionMode}
+                    <input
+                      type="checkbox"
+                      checked={isSelected(s.id)}
+                      onclick={(e) => { e.stopPropagation(); toggleSelect(s.id) }}
+                      onkeydown={(e) => e.stopPropagation()}
+                      aria-label="Select sentence"
+                      style="margin-right: .5rem;"
+                    />
+                  {/if}
                   <div class="sentence-text">{s.text}</div>
                   {#if s.createdAt}
                     <div class="sentence-meta">{new Date(s.createdAt).toLocaleString()}</div>
@@ -135,11 +405,56 @@
           <section class="right-pane">
             {#if selected}
               <div class="selected-wrapper">
-                <h4 class="selected-title" aria-live="polite">{selected.text}</h4>
+                {#if isEditing}
+                  <div class="edit-row">
+                    <input id="edit-sentence" name="edit-sentence" class="edit-input" bind:value={editText} aria-label="Edit sentence" />
+                    <button class="primary" type="button" disabled={isSavingEdit} onclick={saveEdit}>Save</button>
+                    <button class="icon-btn" type="button" onclick={cancelEdit}>Cancel</button>
+                  </div>
+                  {#if editError}<div class="state error">{editError}</div>{/if}
+                {:else}
+                  <div class="selected-header">
+                    <h4 class="selected-title" aria-live="polite">{selected.text}</h4>
+                    <div class="selected-actions">
+                      <button class="icon-btn" type="button" aria-label="Edit sentence" onclick={startEdit}>
+                        <EditText size={18} stroke="#eeeeee" strokeWidth={1.5} />
+                      </button>
+                      <button class="icon-btn" type="button" aria-label="Add note" onclick={() => { isAddingNote = true }}>
+                        <AddNote size={18} stroke="#eeeeee" strokeWidth={1.5} />
+                      </button>
+                      <button class="icon-btn" type="button" aria-label="Delete sentence" onclick={deleteSelected} disabled={isDeleting}>
+                        <DeleteGarbageIcon size={18} stroke="#eeeeee" strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  </div>
+                {/if}
                 {#if selected.createdAt}
                   <div class="selected-meta">
                     <Calendar size={14} stroke="#eeeeee" strokeWidth={1.5} />
                     <span>{formatDate(selected.createdAt)}</span>
+                  </div>
+                {/if}
+                {#if deleteError}<div class="state error">{deleteError}</div>{/if}
+
+                {#if isAddingNote}
+                  <div class="add-note-form">
+                    <div class="note-type-tabs" role="tablist" aria-label="Note type">
+                      <label><input type="radio" name="noteType" value="vocab" checked={noteType === 'vocab'} onclick={() => noteType = 'vocab'} /> Vocab</label>
+                      <label><input type="radio" name="noteType" value="grammar" checked={noteType === 'grammar'} onclick={() => noteType = 'grammar'} /> Grammar</label>
+                    </div>
+
+                    {#if noteType === 'vocab'}
+                      <input id="note-target" name="note-target" placeholder="Target" bind:value={noteTarget} aria-label="Target word or phrase" />
+                      <input id="note-native" name="note-native" placeholder="Native" bind:value={noteNative} aria-label="Native translation" />
+                    {:else}
+                      <textarea id="note-text" name="note-text" placeholder="Grammar note" bind:value={noteText} aria-label="Grammar note text"></textarea>
+                    {/if}
+
+                    {#if noteError}<div class="state error">{noteError}</div>{/if}
+                    <div class="note-actions">
+                      <button class="primary" type="button" disabled={isSavingNote} onclick={saveNote}>Save note</button>
+                      <button class="icon-btn" type="button" onclick={cancelAddNote}>Cancel</button>
+                    </div>
                   </div>
                 {/if}
 
@@ -340,6 +655,31 @@
     line-height: 1.4;
   }
 
+  .selected-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .selected-actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .edit-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .edit-input {
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(238,238,238,0.15);
+    background: #22262d;
+    color: #eeeeee;
+  }
+
   .selected-meta {
     display: flex;
     align-items: center;
@@ -353,6 +693,33 @@
     border-top: 1px solid rgba(238, 238, 238, 0.08);
     padding-top: 0.5rem;
     overflow: auto;
+  }
+
+  .add-note-form {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px dashed rgba(238,238,238,0.15);
+    border-radius: 8px;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .note-type-tabs {
+    display: flex;
+    gap: 1rem;
+  }
+  .add-note-form input,
+  .add-note-form textarea {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(238,238,238,0.15);
+    background: #22262d;
+    color: #eeeeee;
+  }
+  .note-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
   }
 
   .notes-header {
@@ -418,6 +785,34 @@
 
   .primary:hover {
     background: rgba(118, 171, 174, 0.15);
+  }
+
+  .filter-popover {
+    position: absolute;
+    right: 0;
+    top: 30px;
+    background: #2b3038;
+    border: 1px solid rgba(238, 238, 238, 0.08);
+    border-radius: 8px;
+    padding: 0.5rem;
+    z-index: 2;
+    display: grid;
+    gap: 0.5rem;
+    min-width: 220px;
+  }
+  .filter-popover label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .filter-popover input[type="date"] {
+    background: #22262d;
+    border: 1px solid rgba(238,238,238,0.15);
+    color: #eeeeee;
+    border-radius: 6px;
+    padding: 0.25rem 0.4rem;
   }
 </style>
 

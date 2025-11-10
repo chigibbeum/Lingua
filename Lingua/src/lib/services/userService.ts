@@ -92,4 +92,19 @@ export async function setProfileDetails(details: { firstName?: string; lastName?
   await setDoc(userRef, payload, { merge: true })
 }
 
+export async function getProfileDetails(): Promise<{ firstName?: string; lastName?: string }> {
+  const currentUser = auth.currentUser
+  if (!currentUser) throw new Error('No user signed in.')
+  const userRef = doc(db, 'users', currentUser.uid)
+  const snap = await getDoc(userRef)
+  if (!snap.exists()) return {}
+  const data = snap.data() as { firstName?: string; lastName?: string }
+  const first = (data.firstName ?? '').trim()
+  const last = (data.lastName ?? '').trim()
+  return {
+    firstName: first || undefined,
+    lastName: last || undefined,
+  }
+}
+
 

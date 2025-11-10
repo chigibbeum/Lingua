@@ -3,6 +3,7 @@
   import Toolbar from './Toolbar.svelte'
   import { listFlashcards, type Flashcard } from './services/flashcardService'
   import ProfileModal from './ProfileModal.svelte'
+  import DeckLibraryModal from './DeckLibraryModal.svelte'
   import AddFlashcardModal from './components/create/AddFlashcardModal.svelte'
   import FlashcardIcon from '@icons/Flashcard.svelte'
   import InsertRight from '@icons/InsertRight.svelte'
@@ -31,6 +32,7 @@
 
   let showAddFlashcard = $state(false)
   let showProfile = $state(false)
+  let showDeckLibrary = $state(false)
 
   async function loadCards() {
     isLoading = true
@@ -124,7 +126,7 @@
   }
 </script>
 
-<NavigationBar onOpenProfile={() => (showProfile = true)} />
+<NavigationBar onOpenDecks={() => (showDeckLibrary = true)} onOpenProfile={() => (showProfile = true)} />
 <Toolbar 
   mode={mode} 
   onModeChange={onModeChange}
@@ -202,6 +204,7 @@
   onCreated={(count) => { if (count > 0) loadCards() }}
 />
 <ProfileModal open={showProfile} onClose={() => (showProfile = false)} />
+<DeckLibraryModal open={showDeckLibrary} onClose={() => (showDeckLibrary = false)} />
 
 <style>
   .flashcard-mode {

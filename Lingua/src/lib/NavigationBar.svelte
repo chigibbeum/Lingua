@@ -10,9 +10,11 @@
   let isExpanded = $state(false)
   let {
     onOpenSentences = () => {},
+    onOpenDecks = () => {},
     onOpenProfile = () => {},
   }: {
     onOpenSentences?: () => void
+    onOpenDecks?: () => void
     onOpenProfile?: () => void
   } = $props()
   
@@ -55,7 +57,7 @@
       
       <div class="divider"></div>
       
-      <button class="nav-item" type="button" aria-label="Deck Library">
+      <button class="nav-item" type="button" aria-label="Deck Library" onclick={onOpenDecks}>
         <DeckLibrary size={24} stroke="#76abae" strokeWidth={1.5} />
         {#if isExpanded}
           <span class="nav-label">Decks</span>

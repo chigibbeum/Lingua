@@ -2,15 +2,18 @@
   import { sessionStore } from '@lib/stores/session'
   import type { SessionState, MorphemeMeta } from '@lib/stores/session'
   import Break from '@icons/Break.svelte'
-  import AddNote from '@icons/AddNote.svelte'
   import Combine from '@icons/Combine.svelte'
-  import AddNoteModal from './AddNoteModal.svelte'
+  import VocabNote from '@icons/VocabNote.svelte'
+  import GrammarNote from '@icons/GrammarNote.svelte'
+  import VocabularyNoteModal from './VocabularyNoteModal.svelte'
+  import GrammarNoteModal from './GrammarNoteModal.svelte'
   
   let selectedMorphemes = $state<string[]>([])
   let hoveredMorphemeId = $state<string | null>(null)
   let showBreakInput = $state<string | null>(null)
   let breakInputValue = $state('')
-  let showNoteModal = $state(false)
+  let showVocabNoteModal = $state(false)
+  let showGrammarNoteModal = $state(false)
   let noteMorphemeId = $state<string>('')
   let popoverPositions = $state<Record<string, { x: number; y: number }>>({})
   let lastSelectedId: string | null = $state(null)
@@ -124,9 +127,16 @@
     }
   }
   
-  function handleAddNote(morphemeId: string) {
+  function handleAddVocabNote(morphemeId: string) {
     noteMorphemeId = morphemeId
-    showNoteModal = true
+    showVocabNoteModal = true
+    selectedMorphemes = []
+    hoveredMorphemeId = null
+  }
+
+  function handleAddGrammarNote(morphemeId: string) {
+    noteMorphemeId = morphemeId
+    showGrammarNoteModal = true
     selectedMorphemes = []
     hoveredMorphemeId = null
   }
@@ -204,9 +214,24 @@
             onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleMorphemeClick(e as unknown as MouseEvent, morpheme.id) }}
             aria-label="Morpheme: {morpheme.text}"
           >
-            <span class="morpheme-text">{morpheme.text}</span>
-            {#if hasNote}
-              <span class="note-indicator">n</span>
+            {#if morpheme.notes.some(n => n.type === 'vocab')}
+              <div class="note-row note-top">
+                {#each morpheme.notes.filter(n => n.type === 'vocab') as n}
+                  <span class="note-chip">{n.target}</span>
+                {/each}
+              </div>
+            {/if}
+
+            <div class="text-row">
+              <span class="morpheme-text">{morpheme.text}</span>
+            </div>
+
+            {#if morpheme.notes.some(n => n.type === 'grammar')}
+              <div class="note-row note-bottom">
+                {#each morpheme.notes.filter(n => n.type === 'grammar') as n}
+                  <span class="note-chip">{n.text}</span>
+                {/each}
+              </div>
             {/if}
             
             {#if showSinglePopover}
@@ -223,10 +248,18 @@
                 <button
                   type="button"
                   class="popover-button"
-                  onclick={(e) => { e.stopPropagation(); handleAddNote(morpheme.id); }}
-                  aria-label="Add note"
+                  onclick={(e) => { e.stopPropagation(); handleAddVocabNote(morpheme.id); }}
+                  aria-label="Vocabulary note"
                 >
-                  <AddNote size={20} stroke="#eeeeee" strokeWidth={1.5} />
+                  <VocabNote size={20} stroke="#eeeeee" strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  class="popover-button"
+                  onclick={(e) => { e.stopPropagation(); handleAddGrammarNote(morpheme.id); }}
+                  aria-label="Grammar note"
+                >
+                  <GrammarNote size={20} stroke="#eeeeee" strokeWidth={1.5} />
                 </button>
               </div>
             {/if}
@@ -239,17 +272,25 @@
                   type="button"
                   class="popover-button"
                   onclick={(e) => { e.stopPropagation(); handleCombine(); }}
-                  aria-label="Combine morphemes"
+                  aria-label="Combine"
                 >
                   <Combine size={20} stroke="#eeeeee" strokeWidth={1.5} />
                 </button>
                 <button
                   type="button"
                   class="popover-button"
-                  onclick={(e) => { e.stopPropagation(); handleAddNote(selectedMorphemes[0]!); }}
-                  aria-label="Add note"
+                  onclick={(e) => { e.stopPropagation(); handleAddVocabNote(selectedMorphemes[0]!); }}
+                  aria-label="Vocabulary note"
                 >
-                  <AddNote size={20} stroke="#eeeeee" strokeWidth={1.5} />
+                  <VocabNote size={20} stroke="#eeeeee" strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  class="popover-button"
+                  onclick={(e) => { e.stopPropagation(); handleAddGrammarNote(selectedMorphemes[0]!); }}
+                  aria-label="Grammar note"
+                >
+                  <GrammarNote size={20} stroke="#eeeeee" strokeWidth={1.5} />
                 </button>
               </div>
             {/if}
@@ -263,8 +304,15 @@
     </div>
   {/if}
   
-  <AddNoteModal
-    bind:isOpen={showNoteModal}
+  <VocabularyNoteModal
+    bind:isOpen={showVocabNoteModal}
+    bind:morphemeId={noteMorphemeId}
+    onNoteAdded={(id, payload) => {
+      handleNoteAdded(id, payload)
+    }}
+  />
+  <GrammarNoteModal
+    bind:isOpen={showGrammarNoteModal}
     bind:morphemeId={noteMorphemeId}
     onNoteAdded={(id, payload) => {
       handleNoteAdded(id, payload)
@@ -295,8 +343,10 @@
   .morpheme-node {
     position: relative;
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
-    padding: 0.5rem 1rem;
+    gap: 0.15rem;
+    padding: 0.35rem 0.75rem;
     background-color: transparent;
     color: #eeeeee;
     border-radius: 0.35rem;
@@ -319,6 +369,36 @@
   
   .morpheme-text {
     font-size: 1.25rem;
+  }
+
+  .text-row {
+    line-height: 1.2;
+  }
+
+  .note-row {
+    color: #76abae;
+    font-size: 0.85rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .note-top { margin-bottom: 0.05rem; }
+  .note-bottom { margin-top: 0.05rem; }
+
+  .note-chip {
+    color: #76abae;
+  }
+
+  .note-sep {
+    opacity: 0.7;
+    margin: 0 0.25rem;
+  }
+  
+  /* Insert separators between chips without extra markup */
+  .note-row .note-chip + .note-chip::before {
+    content: '•';
+    opacity: 0.7;
+    margin: 0 0.25rem;
   }
   
   .note-indicator {

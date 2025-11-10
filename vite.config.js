@@ -1,4 +1,7 @@
-import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
+// Minimal Vite config at the repo root to help editor tooling resolve the nested app.
+// Intentionally avoid importing 'vite' here.
+module.exports = {
+  root: './Lingua',
+  base: '/Lingua/',
+}
 
-export default defineConfig({ plugins: [tailwindcss()] });

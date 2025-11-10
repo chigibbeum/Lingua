@@ -1,6 +1,7 @@
 <script lang="ts">
   import { user as authUser } from './stores/auth'
-
+  import { claimUsername, setProfileDetails, getUsername, getProfileDetails } from './services/userService'
+ 
   let {
     open,
     onClose = () => {},
@@ -12,28 +13,54 @@
   let firstName: string = $state('')
   let lastName: string = $state('')
   let username: string = $state('')
-
-  function deriveNames(displayName?: string | null): { first: string; last: string } {
-    if (!displayName) return { first: '', last: '' }
-    const parts = displayName.trim().split(/\s+/)
-    if (parts.length === 1) return { first: parts[0] ?? '', last: '' }
-    return { first: parts[0] ?? '', last: parts.slice(1).join(' ') }
-  }
+  let initialUsername: string = $state('')
+  let isSubmitting: boolean = $state(false)
+  let successMessage: string | null = $state(null)
+  let errorMessage: string | null = $state(null)
+  let isEditing: boolean = $state(false)
 
   $effect(() => {
     if (open) {
-      const displayName = $authUser?.displayName ?? ''
-      const email = $authUser?.email ?? ''
-      const parts = displayName.trim() ? displayName.trim().split(/\s+/) : []
-      firstName = parts[0] ?? ''
-      if (parts.length > 1) {
-        lastName = parts.slice(1).join(' ')
-      } else {
-        lastName = ''
-      }
-      username = (displayName || (email ? email.split('@')[0] : '')) as unknown as string
+      successMessage = null
+      errorMessage = null
+      ;(async () => {
+        try {
+          const [u, details] = await Promise.all([getUsername(), getProfileDetails()])
+          const normalized = (u ?? '').trim()
+          const nextUsername = normalized === 'Anonymous' ? '' : normalized
+          if (nextUsername) {
+            initialUsername = nextUsername
+            username = nextUsername
+          }
+          if (details?.firstName !== undefined) firstName = (details.firstName ?? '').trim()
+          if (details?.lastName !== undefined) lastName = (details.lastName ?? '').trim()
+        } catch {
+          // keep existing values on error to avoid flicker
+        }
+      })()
     }
   })
+ 
+  async function handleSave(e?: Event) {
+    e?.preventDefault()
+    isSubmitting = true
+    successMessage = null
+    errorMessage = null
+    try {
+      await setProfileDetails({ firstName, lastName })
+      const next = (username ?? '').trim()
+      if (next && next !== initialUsername) {
+        await claimUsername(next)
+        initialUsername = next
+      }
+      successMessage = 'Saved.'
+      isEditing = false
+    } catch (err: any) {
+      errorMessage = (err && err.message) ? String(err.message) : 'Failed to save.'
+    } finally {
+      isSubmitting = false
+    }
+  }
 </script>
 
 {#if open}
@@ -66,45 +93,74 @@
         </aside>
 
         <section class="right-pane">
-          <form class="form" onsubmit={(e) => e.preventDefault()}>
-            <div class="row-2col">
-              <div>
-                <label for="first-name">First name</label>
-                <input
-                  id="first-name"
-                  type="text"
-                  placeholder="First name"
-                  bind:value={firstName}
-                  autocomplete="given-name"
-                />
+          <form class="form" onsubmit={handleSave}>
+            {#if errorMessage}
+              <div class="error" role="alert">{errorMessage}</div>
+            {/if}
+            {#if successMessage}
+              <div class="success" role="status">{successMessage}</div>
+            {/if}
+            {#if isEditing}
+              <div class="row-2col">
+                <div>
+                  <label for="first-name">First name</label>
+                  <input
+                    id="first-name"
+                    type="text"
+                    placeholder="First name"
+                    bind:value={firstName}
+                    autocomplete="given-name"
+                  />
+                </div>
+                <div>
+                  <label for="last-name">Last name</label>
+                  <input
+                    id="last-name"
+                    type="text"
+                    placeholder="Last name"
+                    bind:value={lastName}
+                    autocomplete="family-name"
+                  />
+                </div>
               </div>
-              <div>
-                <label for="last-name">Last name</label>
-                <input
-                  id="last-name"
-                  type="text"
-                  placeholder="Last name"
-                  bind:value={lastName}
-                  autocomplete="family-name"
-                />
-              </div>
-            </div>
 
-            <label for="username">Username</label>
-            <input
-              id="username"
-              type="text"
-              placeholder="your_username"
-              bind:value={username}
-              autocomplete="username"
-              spellcheck={false}
-            />
+              <label for="username">Username</label>
+              <input
+                id="username"
+                type="text"
+                placeholder="your_username"
+                bind:value={username}
+                autocomplete="username"
+                spellcheck={false}
+              />
+            {:else}
+              <div class="row-2col">
+                <div>
+                  <label>First name</label>
+                  <div class="display-field">{firstName || '—'}</div>
+                </div>
+                <div>
+                  <label>Last name</label>
+                  <div class="display-field">{lastName || '—'}</div>
+                </div>
+              </div>
+
+              <label>Username</label>
+              <div class="display-field">{username || '—'}</div>
+            {/if}
           </form>
         </section>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="primary" onclick={() => onClose()}>Close</button>
+        {#if isEditing}
+          <button type="button" class="primary" onclick={handleSave} disabled={isSubmitting}>
+            {isSubmitting ? 'Saving…' : 'Save'}
+          </button>
+          <button type="button" onclick={() => (isEditing = false)} disabled={isSubmitting}>Cancel</button>
+        {:else}
+          <button type="button" class="primary" onclick={() => (isEditing = true)}>Edit</button>
+        {/if}
       </div>
     </div>
   </div>
@@ -215,12 +271,42 @@
     box-shadow: 0 0 0 2px #76abae33;
   }
 
+  .display-field {
+    width: 100%;
+    background: #22262d;
+    color: #eeeeee;
+    border: 1px solid rgba(238, 238, 238, 0.12);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+  }
+
   .modal-footer {
     display: flex;
     justify-content: flex-end;
+    gap: 0.75rem;
     padding-top: 0.75rem;
     border-top: 1px solid rgba(238, 238, 238, 0.08);
     margin-top: 0.5rem;
+  }
+ 
+  .error {
+    background: rgba(220, 53, 69, 0.15);
+    border: 1px solid rgba(220, 53, 69, 0.35);
+    color: #ffb3b8;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+ 
+  .success {
+    background: rgba(118, 171, 174, 0.15);
+    border: 1px solid rgba(118, 171, 174, 0.35);
+    color: #cce7e8;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
   }
 
   .primary {
@@ -233,6 +319,20 @@
   }
 
   .primary:hover {
+    background: rgba(118, 171, 174, 0.15);
+  }
+ 
+  /* Close button adopts bordered style and hover color */
+  .modal-footer button:not(.primary) {
+    background: transparent;
+    border: 1px solid #76abae;
+    color: #eeeeee;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+ 
+  .modal-footer button:not(.primary):hover {
     background: rgba(118, 171, 174, 0.15);
   }
 </style>

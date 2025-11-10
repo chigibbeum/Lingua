@@ -7,6 +7,7 @@
   import SentenceLibraryModal from './SentenceLibraryModal.svelte'
   import ProfileModal from './ProfileModal.svelte'
   import CreateFlashcardsModal from './components/CreateFlashcardsModal.svelte'
+  import DeckLibraryModal from './DeckLibraryModal.svelte'
   import { sessionStore, type SessionState } from './stores/session'
 import { saveSession } from './services/sessionService'
 import { saveSentenceWithNotes } from './services/sentenceService'
@@ -28,6 +29,7 @@ import { saveSentenceWithNotes } from './services/sentenceService'
   let showSentenceLibrary = $state(false)
   let showCreateFlashcards = $state(false)
   let showProfile = $state(false)
+  let showDeckLibrary = $state(false)
   
   let session: SessionState = $state({ mode: 'idle', current: null })
   
@@ -147,7 +149,7 @@ import { saveSentenceWithNotes } from './services/sentenceService'
   }
 </script>
 
-<NavigationBar onOpenSentences={() => (showSentenceLibrary = true)} onOpenProfile={() => (showProfile = true)} />
+<NavigationBar onOpenSentences={() => (showSentenceLibrary = true)} onOpenDecks={() => (showDeckLibrary = true)} onOpenProfile={() => (showProfile = true)} />
 <Toolbar 
   mode={mode} 
   onModeChange={onModeChange} 
@@ -167,6 +169,7 @@ import { saveSentenceWithNotes } from './services/sentenceService'
 </div>
 
 <SentenceLibraryModal open={showSentenceLibrary} onClose={() => (showSentenceLibrary = false)} />
+<DeckLibraryModal open={showDeckLibrary} onClose={() => (showDeckLibrary = false)} />
 <ProfileModal open={showProfile} onClose={() => (showProfile = false)} />
 <CreateFlashcardsModal
   bind:isOpen={showCreateFlashcards}

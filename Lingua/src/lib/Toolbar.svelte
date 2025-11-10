@@ -8,7 +8,6 @@
   import SaveNotes from '@icons/SaveNotes.svelte'
   import HistoryView from '@icons/HistoryView.svelte'
   import Filter from '@icons/Filter.svelte'
-  import DeckLibrary from '@icons/DeckLibrary.svelte'
 
   type ToolbarMode = 'parsing' | 'flashcard'
   
@@ -54,15 +53,6 @@
 
       <!-- Right side: Mode-specific icons -->
       {#if mode === 'parsing'}
-        <button 
-          class="tool" 
-          class:active={activeAction === 'deck-library'}
-          type="button" 
-          aria-label="Deck Library" 
-          onclick={() => onActionClick('deck-library')}
-        >
-          <DeckLibrary size={24} stroke="#eeeeee" strokeWidth={1.5} />
-        </button>
         <button 
           class="tool" 
           class:active={activeAction === 'new-text'}
@@ -118,15 +108,6 @@
           <HistoryView size={24} stroke="#eeeeee" strokeWidth={1.5} />
         </button>
       {:else if mode === 'flashcard'}
-        <button 
-          class="tool" 
-          class:active={activeAction === 'deck-library'}
-          type="button" 
-          aria-label="Deck Library" 
-          onclick={() => onActionClick('deck-library')}
-        >
-          <DeckLibrary size={24} stroke="#eeeeee" strokeWidth={1.5} />
-        </button>
         <button class="tool" type="button" aria-label="Add Flashcard" onclick={() => onActionClick('add-flashcard')}>
           <AddFlashcards size={24} stroke="#eeeeee" strokeWidth={1.5} />
         </button>

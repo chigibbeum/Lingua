@@ -12,7 +12,7 @@ All icons in `/web/src/icons/` are Svelte 5 components using runes syntax. These
 - `Calendar.svelte` - For filtering by date 
 - `Collapse.svelte` - Used for closing the dashboard/navigation bar
 - `DeckLibrary.svelte` - For opening up the library of flashcards made
-- `Delete.svelte` - For actions when deleting any type of created content
+- `DeleteGarbageIcon.svelte` - For actions when deleting any type of created content
 - `EditNode.svelte` - Editing text in current node when using the edit function
 - `EditText.svelte` - When editing text while actively parsing
 - `Filter.svelte` - For any filter option, excluding by date.

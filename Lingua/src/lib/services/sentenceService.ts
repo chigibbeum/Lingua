@@ -7,6 +7,9 @@ import {
   query,
   serverTimestamp,
   Timestamp,
+  updateDoc,
+  doc,
+  writeBatch,
 } from 'firebase/firestore'
 import { ensureUserDocument } from './userService'
 
@@ -126,6 +129,49 @@ export async function saveSentenceWithNotes(text: string, notes: SentenceNoteInp
   const id = await saveSentence(text)
   await saveSentenceNotes(id, notes)
   return id
+}
+
+export async function updateSentence(
+  sentenceId: string,
+  changes: { text?: string }
+): Promise<void> {
+  const uid = requireUserId()
+  if (!sentenceId) {
+    throw new Error('sentenceId is required')
+  }
+
+  const payload: any = {}
+  if (changes.text !== undefined) {
+    const trimmed = (changes.text ?? '').trim()
+    if (!trimmed) {
+      throw new Error('Sentence text cannot be empty')
+    }
+    payload.text = trimmed
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return
+  }
+
+  const ref = doc(db, 'users', uid, 'sentences', sentenceId)
+  await updateDoc(ref, payload)
+}
+
+export async function deleteSentence(sentenceId: string): Promise<void> {
+  const uid = requireUserId()
+  if (!sentenceId) {
+    throw new Error('sentenceId is required')
+  }
+  // Collect all notes under the sentence and delete them with the sentence in a batch
+  const notesRef = collection(db, 'users', uid, 'sentences', sentenceId, 'notes')
+  const notesSnap = await getDocs(notesRef)
+  const sentenceRef = doc(db, 'users', uid, 'sentences', sentenceId)
+  const batch = writeBatch(db)
+  notesSnap.forEach(d => {
+    batch.delete(d.ref)
+  })
+  batch.delete(sentenceRef)
+  await batch.commit()
 }
 
 
