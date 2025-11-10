@@ -132,6 +132,10 @@ import { saveSentenceWithNotes } from './services/sentenceService'
             .then(() => {
               const count = noteInputs.length
               alert(`Saved sentence${count ? ` with ${count} note${count === 1 ? '' : 's'}` : ''}`)
+              // After saving, reset to "new text" flow
+              sessionStore.startNew()
+              currentAction = 'add-new'
+              hasUnsavedChanges = false
             })
             .catch((e) => {
               console.error('Failed to save sentence and notes', e)

@@ -8,10 +8,8 @@ import {
   serverTimestamp,
   Timestamp,
   where,
-  limit,
 } from 'firebase/firestore'
 import type { ParseSession } from '../stores/session'
-import { saveSentenceNotes, saveSentenceWithNotes } from './sentenceService'
 import { ensureUserDocument } from './userService'
 
 export type Flashcard = {
@@ -104,8 +102,7 @@ export async function createFlashcardsFromVocabNotes(notes: VocabFlashInput[]): 
   const ref = collection(db, 'users', uid, 'flashcards')
   let created = 0
 
-  // Ensure sentence and notes are persisted for any session-only selections
-  // Group by sentenceText to minimize queries
+  // Prepare per-sentence duplicate prevention without persisting the sentence
   const bySentence = new Map<string, VocabFlashInput[]>()
   for (const n of notes) {
     const key = (n.sentenceText ?? '').trim()
@@ -113,42 +110,10 @@ export async function createFlashcardsFromVocabNotes(notes: VocabFlashInput[]): 
     if (!bySentence.has(key)) bySentence.set(key, [])
     bySentence.get(key)!.push(n)
   }
-
-  // Map from sentenceText -> ensured Firestore sentenceId
-  const ensuredIdByText = new Map<string, string>()
-  // Map from sentenceText -> existing flashcard composite keys (front/back) to prevent duplicates
   const existingKeysByText = new Map<string, Set<string>>()
   const buildKey = (front?: string, back?: string) =>
     `${String(front ?? '').trim().toLowerCase()}||${String(back ?? '').trim().toLowerCase()}`
 
-  for (const [text, group] of bySentence.entries()) {
-    // If any item in the group lacks a Firestore sentenceId or has a session id (starts with 's-'), ensure persistence
-    const needsEnsure = group.some(g => !g.sentenceId || g.sentenceId.startsWith('s-'))
-    if (!needsEnsure) continue
-
-    const noteInputs = group.map(g => ({
-      type: 'vocab' as const,
-      target: String(g.front ?? ''),
-      native: String(g.back ?? ''),
-      ...(g.morphemeText ? { morphemeText: g.morphemeText } : {}),
-    }))
-
-    // Try to find existing sentence by exact text; if not found, create with notes
-    const base = collection(db, 'users', uid, 'sentences')
-    const q = query(base, where('text', '==', text), limit(1))
-    const snap = await getDocs(q)
-    if (!snap.empty) {
-      const doc = snap.docs[0]!
-      const sentenceId = doc.id
-      await saveSentenceNotes(sentenceId, noteInputs)
-      ensuredIdByText.set(text, sentenceId)
-    } else {
-      const sentenceId = await saveSentenceWithNotes(text, noteInputs)
-      ensuredIdByText.set(text, sentenceId)
-    }
-  }
-
-  // Prefetch existing flashcards per sentenceText for duplicate prevention
   for (const text of bySentence.keys()) {
     const existingForText = await listVocabFlashcardsBySentenceText(text)
     const keys = new Set<string>()
@@ -158,30 +123,27 @@ export async function createFlashcardsFromVocabNotes(notes: VocabFlashInput[]): 
     existingKeysByText.set(text, keys)
   }
 
-  // Create flashcards with updated sentenceId, when available
+  // Create flashcards; do not persist sentence if it doesn't already exist
   for (const n of notes) {
     const front = String(n.front ?? '').trim()
     const back = String(n.back ?? '').trim()
     if (!front || !back) continue
-    // Skip duplicates if a flashcard with same (sentenceText, front, back) already exists
     const text = (n.sentenceText ?? '').trim()
     if (text && existingKeysByText.has(text)) {
       const existingKeys = existingKeysByText.get(text)!
       const key = buildKey(front, back)
-      if (existingKeys.has(key)) {
-        continue
-      } else {
-        existingKeys.add(key)
-      }
+      if (existingKeys.has(key)) continue
+      existingKeys.add(key)
     }
-    const ensuredId = n.sentenceText ? ensuredIdByText.get(n.sentenceText) : undefined
+    const cleanedSentenceId =
+      n.sentenceId && !n.sentenceId.startsWith('s-') ? n.sentenceId : null
     await addDoc(ref, {
       type: 'vocab',
       front,
       back,
       sentenceText: n.sentenceText ?? null,
       morphemeText: n.morphemeText ?? null,
-      sentenceId: ensuredId ?? n.sentenceId ?? null,
+      sentenceId: cleanedSentenceId,
       morphemeId: n.morphemeId ?? null,
       ownerUid: uid,
       createdAt: serverTimestamp(),
