@@ -6,16 +6,22 @@
   import Settings from '../icons/Settings.svelte'
   import HowToUse from '../icons/HowToUse.svelte'
   import ProfileIcon from '../icons/ProfileIcon.svelte'
+  import IconLibraryModal from './IconLibraryModal.svelte'
+  import HomeIcon from '../icons/HomeIcon.svelte'
+  import { currentRoute } from './stores/router'
   
   let isExpanded = $state(false)
+  let showIconsModal = $state(false)
   let {
     onOpenSentences = () => {},
     onOpenDecks = () => {},
     onOpenProfile = () => {},
+    onOpenSettings = () => {},
   }: {
     onOpenSentences?: () => void
     onOpenDecks?: () => void
     onOpenProfile?: () => void
+    onOpenSettings?: () => void
   } = $props()
   
   function toggleExpanded() {
@@ -48,6 +54,15 @@
     
     <!-- Center: Main navigation items - centered when expanded -->
     <div class="nav-center">
+      <button class="nav-item" type="button" aria-label="Home" onclick={() => currentRoute.set('home')}>
+        <HomeIcon size={24} stroke="#76abae" fill="none" strokeWidth={1.5} ariaLabel="Home" />
+        {#if isExpanded}
+          <span class="nav-label">Home</span>
+        {/if}
+      </button>
+      
+      <div class="divider"></div>
+      
       <button class="nav-item" type="button" aria-label="Sentence Library" onclick={onOpenSentences}>
         <SentenceLibrary size={24} stroke="#76abae" strokeWidth={1.5} />
         {#if isExpanded}
@@ -66,7 +81,7 @@
       
       <div class="divider"></div>
       
-      <button class="nav-item" type="button" aria-label="Settings">
+      <button class="nav-item" type="button" aria-label="Settings" onclick={onOpenSettings}>
         <Settings size={24} stroke="#76abae" strokeWidth={1.5} />
         {#if isExpanded}
           <span class="nav-label">Settings</span>
@@ -75,7 +90,7 @@
       
       <div class="divider"></div>
       
-      <button class="nav-item" type="button" aria-label="How To Use">
+      <button class="nav-item" type="button" aria-label="How To Use" onclick={() => showIconsModal = true}>
         <HowToUse size={24} stroke="#76abae" strokeWidth={1.5} />
         {#if isExpanded}
           <span class="nav-label">How To Use</span>
@@ -97,6 +112,8 @@
     </button>
   </div>
 </nav>
+
+<IconLibraryModal open={showIconsModal} onClose={() => showIconsModal = false} />
 
 <style>
   .navigation-bar {

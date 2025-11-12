@@ -1,36 +1,61 @@
 <script lang="ts">
+  import type { PosTag } from '@lib/stores/session'
   let {
     isOpen = $bindable(false),
     morphemeId = $bindable(''),
+    initialTarget = '',
     onNoteAdded = () => {},
   }: {
     isOpen?: boolean
     morphemeId?: string
-    onNoteAdded?: (morphemeId: string, payload: { type: 'vocab'; target: string; native: string }) => void
+    initialTarget?: string
+    onNoteAdded?: (
+      morphemeId: string,
+      payload: { type: 'vocab'; target: string; native: string; pos?: PosTag }
+    ) => void
   } = $props()
 
   let vocabTarget = $state('')
   let vocabNative = $state('')
+  let vocabPos: PosTag | '' = $state('')
+  
+  let wasOpen = $state(false)
+  $effect(() => {
+    if (isOpen && !wasOpen) {
+      vocabTarget = initialTarget ?? ''
+    }
+    wasOpen = isOpen
+  })
 
   function submit() {
     const t = vocabTarget.trim()
     const n = vocabNative.trim()
     if (!t || !n) return
-    onNoteAdded(morphemeId, { type: 'vocab', target: t, native: n })
+    onNoteAdded(morphemeId, {
+      type: 'vocab',
+      target: t,
+      native: n,
+      ...(vocabPos ? { pos: vocabPos } as const : {}),
+    })
     vocabTarget = ''
     vocabNative = ''
+    vocabPos = ''
     isOpen = false
   }
 
   function cancel() {
     vocabTarget = ''
     vocabNative = ''
+    vocabPos = ''
     isOpen = false
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') cancel()
-    else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit()
+    else if (e.key === 'Enter') {
+      e.preventDefault()
+      submit()
+    }
   }
 </script>
 
@@ -45,6 +70,26 @@
 
         <label class="label" for="vocab-native" style="margin-top: 0.75rem;">Native (back)</label>
         <input id="vocab-native" type="text" bind:value={vocabNative} class="input" placeholder="Word meaning (native language)" />
+
+        <label class="label" for="vocab-pos" style="margin-top: 0.75rem;">Part of speech (optional)</label>
+        <select id="vocab-pos" bind:value={vocabPos} class="input">
+          <option value="">-- none --</option>
+          <option value="noun">Noun</option>
+          <option value="verb">Verb</option>
+          <option value="adjective">Adjective</option>
+          <option value="adverb">Adverb</option>
+          <option value="particle">Particle</option>
+          <option value="pronoun">Pronoun</option>
+          <option value="preposition">Preposition</option>
+          <option value="conjunction">Conjunction</option>
+          <option value="interjection">Interjection</option>
+          <option value="auxiliary">Auxiliary</option>
+          <option value="classifier">Classifier</option>
+          <option value="proper_noun">Proper noun</option>
+          <option value="numeral">Numeral</option>
+          <option value="expression">Expression</option>
+          <option value="other">Other</option>
+        </select>
       </div>
 
       <div class="modal-actions">

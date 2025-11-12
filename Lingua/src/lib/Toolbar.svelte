@@ -117,7 +117,7 @@
         <button class="tool" type="button" aria-label="Save Notes">
           <SaveNotes size={24} stroke="#eeeeee" strokeWidth={1.5} />
         </button>
-        <button class="tool" type="button" aria-label="History">
+        <button class="tool" type="button" aria-label="History" onclick={() => onActionClick('history')}>
           <HistoryView size={24} stroke="#eeeeee" strokeWidth={1.5} />
         </button>
       {/if}

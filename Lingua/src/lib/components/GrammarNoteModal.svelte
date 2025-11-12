@@ -2,10 +2,12 @@
   let {
     isOpen = $bindable(false),
     morphemeId = $bindable(''),
+    morphemeText = '',
     onNoteAdded = () => {},
   }: {
     isOpen?: boolean
     morphemeId?: string
+    morphemeText?: string
     onNoteAdded?: (morphemeId: string, payload: { type: 'grammar'; text: string }) => void
   } = $props()
 
@@ -26,7 +28,10 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') cancel()
-    else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit()
+    else if (e.key === 'Enter') {
+      e.preventDefault()
+      submit()
+    }
   }
 </script>
 
@@ -34,6 +39,13 @@
   <div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) cancel() }} onkeydown={handleKeydown} role="dialog" tabindex="-1" aria-modal="true" aria-label="Add Grammar Note">
     <div class="modal-content" role="document" tabindex="-1">
       <h2 class="modal-title">Grammar note</h2>
+
+      {#if (morphemeText ?? '').trim().length > 0}
+        <div class="form-group">
+          <div class="label">Text node</div>
+          <div class="morpheme-field" aria-readonly="true">{morphemeText}</div>
+        </div>
+      {/if}
 
       <div class="form-group">
         <label class="label" for="note-text">Note Text</label>
@@ -150,6 +162,20 @@
   .button-submit:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .morpheme-field {
+    width: 100%;
+    background-color: #222831;
+    border: 1px solid #415780;
+    border-radius: 0.35rem;
+    padding: 0.6rem 0.75rem;
+    color: #eeeeee;
+    font-size: 1rem;
+    font-family: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>
 

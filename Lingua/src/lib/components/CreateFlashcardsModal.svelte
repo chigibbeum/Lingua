@@ -2,7 +2,7 @@
   import CheckAllIcon from '@icons/CheckAllIcon.svelte'
   import type { ParseSession } from '@lib/stores/session'
   import { listRecentVocabNotes, type RecentVocabNote } from '@lib/services/noteService'
-  import { listVocabFlashcardsBySentenceText, createFlashcardsFromVocabNotes, type VocabFlashInput } from '@lib/services/flashcardService'
+  import { listFlashcards, createFlashcardsFromVocabNotes, type VocabFlashInput } from '@lib/services/flashcardService'
 
   let {
     isOpen = $bindable(false),
@@ -61,6 +61,12 @@
     return `${sent}||${front}||${back}`
   }
 
+  function pairKey(it: { front?: string; back?: string }): string {
+    const front = String(it.front ?? '').trim().toLowerCase()
+    const back = String(it.back ?? '').trim().toLowerCase()
+    return `${front}||${back}`
+  }
+
   async function loadData() {
     isLoading = true
     error = null
@@ -86,11 +92,10 @@
       if (sentenceText) {
         const sentenceLc = sentenceText.toLowerCase()
         merged = merged.filter(it => (it.sentenceText ?? '').trim().toLowerCase() === sentenceLc)
-        const existing = await listVocabFlashcardsBySentenceText(sentenceText)
-        const existingKeys = new Set(
-          existing.map(fc => dedupKey({ sentenceText, front: fc.front, back: fc.back }))
-        )
-        merged = merged.filter(it => !existingKeys.has(dedupKey(it)))
+        // Hide globally existing vocab pairs (front/back), regardless of sentence
+        const existingAll = await listFlashcards('vocab')
+        const existingPairKeys = new Set(existingAll.map(fc => pairKey({ front: fc.front, back: fc.back })))
+        merged = merged.filter(it => !existingPairKeys.has(pairKey(it)))
       }
 
       merged.sort((a, b) => {

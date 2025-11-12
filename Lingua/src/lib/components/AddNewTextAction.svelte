@@ -116,13 +116,13 @@
   
   .submit-button {
     background: transparent;
-    border: none;
+    border: 2px solid #76abae;
     color: #eeeeee;
     font-size: 1rem;
     padding: 0.5rem 1rem;
     cursor: pointer;
     border-radius: 0.35rem;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s;
   }
   
   .submit-button:hover {

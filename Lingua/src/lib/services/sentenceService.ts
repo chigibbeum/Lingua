@@ -25,12 +25,14 @@ export interface SentenceNote {
   text?: string
   target?: string
   native?: string
+  pos?: string
   visibility?: 'public' | 'private'
+  morphemeText?: string
   createdAt: string | null
 }
 
 export type SentenceNoteInput =
-  | { type: 'vocab'; target: string; native: string; morphemeText?: string }
+  | { type: 'vocab'; target: string; native: string; pos?: string; morphemeText?: string }
   | { type: 'grammar'; text: string; morphemeText?: string }
 
 function requireUserId(): string {
@@ -88,6 +90,8 @@ export async function listSentenceNotes(sentenceId: string): Promise<SentenceNot
     if (data.text !== undefined) item.text = String(data.text)
     if (data.target !== undefined) item.target = String(data.target)
     if (data.native !== undefined) item.native = String(data.native)
+    if (data.pos !== undefined) item.pos = String(data.pos)
+    if (data.morphemeText !== undefined) item.morphemeText = String(data.morphemeText)
     items.push(item)
   })
   return items
@@ -113,6 +117,7 @@ export async function saveSentenceNotes(
     if (n.type === 'vocab') {
       payload.target = n.target
       payload.native = n.native
+      if (n.pos) payload.pos = n.pos
     } else {
       payload.text = n.text
     }

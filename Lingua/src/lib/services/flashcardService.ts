@@ -123,17 +123,29 @@ export async function createFlashcardsFromVocabNotes(notes: VocabFlashInput[]): 
     existingKeysByText.set(text, keys)
   }
 
+  // Build global dedupe set (front/back across all vocab flashcards)
+  const existingGlobal = await listFlashcards('vocab')
+  const globalKeys = new Set<string>()
+  for (const fc of existingGlobal) {
+    globalKeys.add(buildKey(fc.front, fc.back))
+  }
+
   // Create flashcards; do not persist sentence if it doesn't already exist
   for (const n of notes) {
     const front = String(n.front ?? '').trim()
     const back = String(n.back ?? '').trim()
     if (!front || !back) continue
+    const pairKey = buildKey(front, back)
+
+    // Global dedupe: skip if this front/back already exists anywhere
+    if (globalKeys.has(pairKey)) continue
+    globalKeys.add(pairKey)
+
     const text = (n.sentenceText ?? '').trim()
     if (text && existingKeysByText.has(text)) {
       const existingKeys = existingKeysByText.get(text)!
-      const key = buildKey(front, back)
-      if (existingKeys.has(key)) continue
-      existingKeys.add(key)
+      if (existingKeys.has(pairKey)) continue
+      existingKeys.add(pairKey)
     }
     const cleanedSentenceId =
       n.sentenceId && !n.sentenceId.startsWith('s-') ? n.sentenceId : null

@@ -2,8 +2,25 @@ import { readable, writable, type Writable } from 'svelte/store'
 
 export type AppMode = 'idle' | 'editing' | 'parsing'
 
+export type PosTag =
+  | 'noun'
+  | 'verb'
+  | 'adjective'
+  | 'adverb'
+  | 'particle'
+  | 'pronoun'
+  | 'preposition'
+  | 'conjunction'
+  | 'interjection'
+  | 'auxiliary'
+  | 'classifier'
+  | 'proper_noun'
+  | 'numeral'
+  | 'expression'
+  | 'other'
+
 export type Note =
-  | { id: string; type: 'vocab'; target: string; native: string; createdAt: string }
+  | { id: string; type: 'vocab'; target: string; native: string; pos?: PosTag; createdAt: string }
   | { id: string; type: 'grammar'; text: string; createdAt: string }
 
 export interface MorphemeMeta {
@@ -40,21 +57,18 @@ function generateId(prefix = 'id'): string {
 
 function tokenizeToMorphemes(sentence: string): MorphemeMeta[] {
   const now = new Date().toISOString()
-  // Simple tokenization on whitespace; punctuation kept for MVP
-  return sentence
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(text => ({
-      id: generateId('m'),
-      text,
-      createdAt: now,
-      lastReviewedAt: null,
-      vocabCount: 0,
-      grammarCount: 0,
-      tags: [],
-      notes: [],
-    }))
+  // Tokenize into words/numbers OR single punctuation/symbol characters (Unicode aware)
+  const tokens = (sentence.match(/[\p{L}\p{N}]+|[^\s\p{L}\p{N}]/gu) ?? []).filter(Boolean)
+  return tokens.map(text => ({
+    id: generateId('m'),
+    text,
+    createdAt: now,
+    lastReviewedAt: null,
+    vocabCount: 0,
+    grammarCount: 0,
+    tags: [],
+    notes: [],
+  }))
 }
 
 function morphemesToFlow(morphemes: MorphemeMeta[]) {
@@ -70,6 +84,21 @@ function morphemesToFlow(morphemes: MorphemeMeta[]) {
     target: m.id,
   }))
   return { nodes, edges }
+}
+
+function smartJoinMorphemes(morphemes: MorphemeMeta[]): string {
+  // No space before closing/terminal punctuation; no space after opening punctuation
+  const noSpaceBefore = /^[,.;:!?…)\]}〉》」』】、。？！：；”’»›]+$/u
+  const noSpaceAfterPrev = /^[([{\-–—“‘【《〈「『«‹]+$/u
+  let output = ''
+  let prevText = ''
+  for (const m of morphemes) {
+    const t = m.text
+    const addSpace = output.length > 0 && !noSpaceBefore.test(t) && !noSpaceAfterPrev.test(prevText)
+    output += (addSpace ? ' ' : '') + t
+    prevText = t
+  }
+  return output
 }
 
 function createSessionStore() {
@@ -161,7 +190,9 @@ function createSessionStore() {
 
   const addNoteToMorpheme = (
     morphemeId: string,
-    payload: { type: 'vocab'; target: string; native: string } | { type: 'grammar'; text: string }
+    payload:
+      | { type: 'vocab'; target: string; native: string; pos?: PosTag }
+      | { type: 'grammar'; text: string }
   ) => {
     update(state => {
       if (!state.current) return state
@@ -170,7 +201,14 @@ function createSessionStore() {
           const now = new Date().toISOString()
           const note: Note =
             payload.type === 'vocab'
-              ? { id: generateId('n'), type: 'vocab', target: payload.target, native: payload.native, createdAt: now }
+              ? {
+                  id: generateId('n'),
+                  type: 'vocab',
+                  target: payload.target,
+                  native: payload.native,
+                  ...(payload.pos ? { pos: payload.pos } : {}),
+                  createdAt: now,
+                }
               : { id: generateId('n'), type: 'grammar', text: payload.text, createdAt: now }
           const vocabCount = note.type === 'vocab' ? m.vocabCount + 1 : m.vocabCount
           const grammarCount = note.type === 'grammar' ? m.grammarCount + 1 : m.grammarCount
@@ -259,8 +297,8 @@ function createSessionStore() {
       const idxFirst = indices[0]!
       const firstMorpheme = state.current.morphemes[idxFirst]!
       const combinedText = indices
-        .map(idx => state.current!.morphemes[idx]!.text)
-        .join(' ')
+        .map(idx => state.current!.morphemes[idx]!)
+      const combinedJoined = smartJoinMorphemes(combinedText)
       
       const combinedNotes = indices.flatMap(idx => state.current!.morphemes[idx]!.notes)
       const combinedVocabCount = indices.reduce((sum, idx) => sum + state.current!.morphemes[idx]!.vocabCount, 0)
@@ -268,7 +306,7 @@ function createSessionStore() {
 
       const combinedMorpheme: MorphemeMeta = {
         ...firstMorpheme,
-        text: combinedText,
+        text: combinedJoined,
         notes: combinedNotes,
         vocabCount: combinedVocabCount,
         grammarCount: combinedGrammarCount,
@@ -303,7 +341,7 @@ function createSessionStore() {
         }
         return m
       })
-      const sentence = morphemes.map(m => m.text).join(' ')
+      const sentence = smartJoinMorphemes(morphemes)
       const { nodes, edges } = morphemesToFlow(morphemes)
       return {
         ...state,
@@ -343,7 +381,7 @@ function createSessionStore() {
         ...state.current.morphemes.slice(insertIndex),
       ]
 
-      const sentence = morphemes.map(m => m.text).join(' ')
+      const sentence = smartJoinMorphemes(morphemes)
       const { nodes, edges } = morphemesToFlow(morphemes)
       return {
         ...state,

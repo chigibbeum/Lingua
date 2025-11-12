@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { posChipFormat } from './stores/settings'
   import {
     listSentences,
     listSentenceNotes,
@@ -15,7 +16,8 @@
   import AddNote from '@icons/AddNote.svelte'
   import DeleteGarbageIcon from '@icons/DeleteGarbageIcon.svelte'
   import SelectIcon from '@icons/SelectIcon.svelte'
-  import SelectAllIcon from '@icons/SelectAllIcon.svelte'
+  import CheckAllIcon from '@icons/CheckAllIcon.svelte'
+  import SquareIcon from '@icons/SquareIcon.svelte'
   import { tick } from 'svelte'
 
   let {
@@ -191,14 +193,33 @@
   let noteTarget = $state('')
   let noteNative = $state('')
   let noteText = $state('')
+  let notePos = $state('')
   let isSavingNote = $state(false)
   let noteError: string | null = $state(null)
+  
+  const posShort: Record<string, string> = {
+    noun: 'N',
+    verb: 'V',
+    adjective: 'Adj',
+    adverb: 'Adv',
+    preposition: 'Prep',
+    pronoun: 'Pron',
+    conjunction: 'Conj',
+    particle: 'Part',
+    auxiliary: 'Aux',
+    classifier: 'CL',
+    proper_noun: 'PropN',
+    numeral: 'Num',
+    expression: 'Expr',
+    other: 'Other',
+  }
 
   function resetNoteForm() {
     noteType = 'vocab'
     noteTarget = ''
     noteNative = ''
     noteText = ''
+    notePos = ''
   }
   function cancelAddNote() {
     isAddingNote = false
@@ -217,7 +238,7 @@
           noteError = 'Both “Target” and “Native” are required'
           return
         }
-        await saveSentenceNotes(selected.id, [{ type: 'vocab', target, native }])
+        await saveSentenceNotes(selected.id, [{ type: 'vocab', target, native, ...(notePos ? { pos: notePos } : {}) }])
       } else {
         const text = noteText.trim()
         if (!text) {
@@ -357,7 +378,7 @@
                     aria-label={allVisibleSelected ? 'Clear selection' : 'Select all'}
                     onclick={selectAllVisible}
                   >
-                    <SelectAllIcon size={18} stroke="#eeeeee" strokeWidth={1.5} ariaLabel="Select All" />
+                    <CheckAllIcon size={18} stroke="#eeeeee" strokeWidth={1.5} ariaLabel={allVisibleSelected ? 'Clear selection' : 'Select all'} />
                   </button>
                   <button
                     class="icon-btn"
@@ -378,20 +399,28 @@
                   role="option"
                   class="sentence-item"
                   class:selected={selected?.id === s.id}
+                  class:with-check={selectionMode}
                   aria-selected={selected?.id === s.id}
                   onclick={async () => { selected = s; await loadNotesForSelected() }}
                   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { selected = s; loadNotesForSelected() } }}
                   tabindex="0"
                 >
                   {#if selectionMode}
-                    <input
-                      type="checkbox"
-                      checked={isSelected(s.id)}
+                    <button
+                      class="sentence-check-btn"
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isSelected(s.id)}
+                      aria-label={isSelected(s.id) ? 'Deselect sentence' : 'Select sentence'}
                       onclick={(e) => { e.stopPropagation(); toggleSelect(s.id) }}
                       onkeydown={(e) => e.stopPropagation()}
-                      aria-label="Select sentence"
-                      style="margin-right: .5rem;"
-                    />
+                    >
+                      {#if isSelected(s.id)}
+                        <SelectIcon size={18} stroke="#eeeeee" strokeWidth={1.5} ariaLabel="Selected" />
+                      {:else}
+                        <SquareIcon size={18} stroke="#eeeeee" strokeWidth={1.5} ariaLabel="Not selected" />
+                      {/if}
+                    </button>
                   {/if}
                   <div class="sentence-text">{s.text}</div>
                   {#if s.createdAt}
@@ -444,8 +473,25 @@
                     </div>
 
                     {#if noteType === 'vocab'}
-                      <input id="note-target" name="note-target" placeholder="Target" bind:value={noteTarget} aria-label="Target word or phrase" />
-                      <input id="note-native" name="note-native" placeholder="Native" bind:value={noteNative} aria-label="Native translation" />
+                      <input id="note-target" name="note-target" placeholder="Target" bind:value={noteTarget} aria-label="Target word or phrase" onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveNote() } }} />
+                      <input id="note-native" name="note-native" placeholder="Native" bind:value={noteNative} aria-label="Native translation" onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveNote() } }} />
+                      <label for="note-pos" style="opacity:0.9;">Part of speech (optional)</label>
+                      <select id="note-pos" name="note-pos" bind:value={notePos}>
+                        <option value="">-- none --</option>
+                        <option value="noun">Noun</option>
+                        <option value="verb">Verb</option>
+                        <option value="adjective">Adjective</option>
+                        <option value="adverb">Adverb</option>
+                        <option value="preposition">Preposition</option>
+                        <option value="pronoun">Pronoun</option>
+                        <option value="conjunction">Conjunction</option>
+                        <option value="particle">Particle</option>
+                        <option value="auxiliary">Auxiliary</option>
+                        <option value="proper_noun">Proper noun</option>
+                        <option value="numeral">Numeral</option>
+                        <option value="expression">Expression</option>
+                        <option value="other">Other</option>
+                      </select>
                     {:else}
                       <textarea id="note-text" name="note-text" placeholder="Grammar note" bind:value={noteText} aria-label="Grammar note text"></textarea>
                     {/if}
@@ -471,7 +517,12 @@
                       {#each notes as n}
                         <li class="note-item">
                           <div class="note-top">
-                            <span class="note-type">{n.type}</span>
+                            <div class="note-type-group">
+                              <span class="note-type">{n.type}</span>
+                              {#if n.type === 'vocab' && n.pos && $posChipFormat !== 'hidden'}
+                                <span class="pos-chip pos-small" data-pos={n.pos} title={`Part of speech: ${n.pos}`}>{$posChipFormat === 'short' ? (posShort[n.pos] ?? n.pos) : n.pos}</span>
+                              {/if}
+                            </div>
                             {#if n.createdAt}
                               <span class="note-date">{formatDate(n.createdAt)}</span>
                             {/if}
@@ -479,6 +530,8 @@
                           <div class="note-text">
                             {#if n.type === 'vocab' && n.target && n.native}
                               {n.target} → {n.native}
+                            {:else if n.type === 'grammar' && n.morphemeText}
+                              {n.morphemeText}: {n.text}
                             {:else}
                               {n.text}
                             {/if}
@@ -613,6 +666,7 @@
     padding: 0.6rem 0.25rem;
     cursor: pointer;
     border-radius: 6px;
+    position: relative;
   }
 
   .sentence-item:hover,
@@ -624,6 +678,31 @@
   .sentence-item.selected {
     background: rgba(118, 171, 174, 0.15);
     box-shadow: 0 0 0 2px #76abae66 inset;
+  }
+  .sentence-item.with-check {
+    padding-right: 2rem;
+  }
+  .sentence-check-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    color: #eeeeee;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+  .sentence-check-btn:hover {
+    box-shadow: 0 0 0 3px rgba(118, 171, 174, 0.15);
+  }
+  .sentence-check-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #76abae66;
   }
 
   .sentence-text {
@@ -708,7 +787,8 @@
     gap: 1rem;
   }
   .add-note-form input,
-  .add-note-form textarea {
+  .add-note-form textarea,
+  .add-note-form select {
     width: 100%;
     padding: 0.35rem 0.5rem;
     border-radius: 6px;
@@ -760,11 +840,42 @@
   .note-type {
     text-transform: capitalize;
   }
+  .note-type-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
 
   .note-text {
     font-size: 0.95rem;
     line-height: 1.35;
+    color: #76abae;
   }
+
+  .pos-chip {
+    display: inline-block;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 0.15rem 0.35rem;
+    margin-right: 0.4rem;
+    border-radius: 6px;
+    border: 1px solid rgba(238, 238, 238, 0.2);
+    color: #eeeeee;
+    opacity: 0.95;
+  }
+  .pos-small {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.3rem;
+    margin-left: 0.35rem;
+  }
+  .pos-chip[data-pos="noun"] { color: var(--pos-noun, #22c55e); border-color: currentColor; }
+  .pos-chip[data-pos="verb"] { color: var(--pos-verb, #3b82f6); border-color: currentColor; }
+  .pos-chip[data-pos="adjective"] { color: var(--pos-adjective, #f59e0b); border-color: currentColor; }
+  .pos-chip[data-pos="adverb"] { color: var(--pos-adverb, #a855f7); border-color: currentColor; }
+  .pos-chip[data-pos="preposition"] { color: var(--pos-preposition, #14b8a6); border-color: currentColor; }
+  .pos-chip[data-pos="pronoun"] { color: var(--pos-pronoun, #eab308); border-color: currentColor; }
+  .pos-chip[data-pos="conjunction"] { color: var(--pos-conjunction, #ef4444); border-color: currentColor; }
+  .pos-chip[data-pos="particle"] { color: var(--pos-particle, #10b981); border-color: currentColor; }
 
   .modal-footer {
     display: flex;

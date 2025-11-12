@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sessionStore } from '@lib/stores/session'
-  import type { SessionState, MorphemeMeta } from '@lib/stores/session'
+  import type { SessionState, MorphemeMeta, PosTag } from '@lib/stores/session'
   import Break from '@icons/Break.svelte'
   import Combine from '@icons/Combine.svelte'
   import VocabNote from '@icons/VocabNote.svelte'
@@ -143,7 +143,9 @@
   
   function handleNoteAdded(
     morphemeId: string,
-    payload: { type: 'vocab'; target: string; native: string } | { type: 'grammar'; text: string }
+    payload:
+      | { type: 'vocab'; target: string; native: string; pos?: PosTag }
+      | { type: 'grammar'; text: string }
   ) {
     sessionStore.addNoteToMorpheme(morphemeId, payload)
   }
@@ -206,6 +208,7 @@
             class="morpheme-node"
             class:selected={isSelected}
             class:has-note={hasNote}
+            data-pos={(morpheme.notes.find(n => n.type === 'vocab' && 'pos' in n && (n as any).pos)?.pos) || null}
             onclick={(e) => handleMorphemeClick(e, morpheme.id)}
             onmouseenter={(e) => handleMorphemeHover(e, morpheme.id)}
             onmouseleave={handleMorphemeLeave}
@@ -217,7 +220,7 @@
             {#if morpheme.notes.some(n => n.type === 'vocab')}
               <div class="note-row note-top">
                 {#each morpheme.notes.filter(n => n.type === 'vocab') as n}
-                  <span class="note-chip">{n.target}</span>
+                  <span class="note-chip">{n.native}</span>
                 {/each}
               </div>
             {/if}
@@ -307,6 +310,7 @@
   <VocabularyNoteModal
     bind:isOpen={showVocabNoteModal}
     bind:morphemeId={noteMorphemeId}
+    initialTarget={(session.current?.morphemes.find(m => m.id === noteMorphemeId)?.text ?? '').replace(/(^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$)/gu, '')}
     onNoteAdded={(id, payload) => {
       handleNoteAdded(id, payload)
     }}
@@ -314,6 +318,7 @@
   <GrammarNoteModal
     bind:isOpen={showGrammarNoteModal}
     bind:morphemeId={noteMorphemeId}
+    morphemeText={(session.current?.morphemes.find(m => m.id === noteMorphemeId)?.text ?? '').replace(/(^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$)/gu, '')}
     onNoteAdded={(id, payload) => {
       handleNoteAdded(id, payload)
     }}
@@ -369,6 +374,9 @@
   
   .morpheme-text {
     font-size: 1.25rem;
+    display: inline-block;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.3rem;
   }
 
   .text-row {
@@ -464,6 +472,40 @@
     color: #76abae;
     font-size: 1.25rem;
     text-align: center;
+  }
+
+  /* POS highlight rules (background “pill” with fallback defaults) */
+  .morpheme-node[data-pos="noun"] .morpheme-text {
+    background-color: var(--pos-noun-bg, rgba(34, 197, 94, 0.22));
+    border: 1px solid var(--pos-noun-bd, rgba(34, 197, 94, 0.45));
+  }
+  .morpheme-node[data-pos="verb"] .morpheme-text {
+    background-color: var(--pos-verb-bg, rgba(59, 130, 246, 0.22));
+    border: 1px solid var(--pos-verb-bd, rgba(59, 130, 246, 0.45));
+  }
+  .morpheme-node[data-pos="adjective"] .morpheme-text {
+    background-color: var(--pos-adjective-bg, rgba(245, 158, 11, 0.22));
+    border: 1px solid var(--pos-adjective-bd, rgba(245, 158, 11, 0.45));
+  }
+  .morpheme-node[data-pos="adverb"] .morpheme-text {
+    background-color: var(--pos-adverb-bg, rgba(168, 85, 247, 0.22));
+    border: 1px solid var(--pos-adverb-bd, rgba(168, 85, 247, 0.45));
+  }
+  .morpheme-node[data-pos="preposition"] .morpheme-text {
+    background-color: var(--pos-preposition-bg, rgba(20, 184, 166, 0.22));
+    border: 1px solid var(--pos-preposition-bd, rgba(20, 184, 166, 0.45));
+  }
+  .morpheme-node[data-pos="pronoun"] .morpheme-text {
+    background-color: var(--pos-pronoun-bg, rgba(234, 179, 8, 0.22));
+    border: 1px solid var(--pos-pronoun-bd, rgba(234, 179, 8, 0.45));
+  }
+  .morpheme-node[data-pos="conjunction"] .morpheme-text {
+    background-color: var(--pos-conjunction-bg, rgba(239, 68, 68, 0.22));
+    border: 1px solid var(--pos-conjunction-bd, rgba(239, 68, 68, 0.45));
+  }
+  .morpheme-node[data-pos="particle"] .morpheme-text {
+    background-color: var(--pos-particle-bg, rgba(16, 185, 129, 0.22));
+    border: 1px solid var(--pos-particle-bd, rgba(16, 185, 129, 0.45));
   }
 </style>
 

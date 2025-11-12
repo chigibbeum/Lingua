@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { listFlashcards, type Flashcard } from './services/flashcardService'
+  import { tick } from 'svelte'
   let {
     open,
     onClose = () => {}
@@ -8,19 +10,86 @@
   } = $props()
 
   // Deck list state
-  let decks: Array<{ id: string; label: string; createdAt?: number }> = []
-  let selectedDeck: { id: string; label: string; createdAt?: number } | null = null
-  let isLoading = false
-  let error: string | null = null
+  let decks: Array<{ id: string; label: string; createdAt?: number }> = $state([])
+  let selectedDeck: { id: string; label: string; createdAt?: number } | null = $state(null)
+  let isLoading = $state(false)
+  let error: string | null = $state(null)
 
   // Selected deck detail state (e.g., cards/notes)
-  let detail: Array<{ id: string; type: string; text: string; createdAt?: number }> = []
-  let isLoadingDetail = false
-  let detailError: string | null = null
+  let detail: Array<{ id: string; type: string; text: string; createdAt?: number }> = $state([])
+  let isLoadingDetail = $state(false)
+  let detailError: string | null = $state(null)
+
+  // Flashcards loaded from the database
+  let cards: Flashcard[] = $state([])
+
+  async function loadData() {
+    isLoading = true
+    error = null
+    try {
+      cards = await listFlashcards()
+      // Build pseudo-decks
+      const vocabCount = cards.filter(c => c.type === 'vocab').length
+      const grammarCount = cards.filter(c => c.type === 'grammar').length
+      const nextDecks: Array<{ id: string; label: string; createdAt?: number }> = []
+      nextDecks.push({ id: 'all', label: `All Cards (${cards.length})` })
+      if (vocabCount > 0) nextDecks.push({ id: 'vocab', label: `Vocab (${vocabCount})` })
+      if (grammarCount > 0) nextDecks.push({ id: 'grammar', label: `Grammar (${grammarCount})` })
+      decks = nextDecks
+      if (!selectedDeck && decks.length > 0) {
+        selectedDeck = decks[0]
+      }
+      await buildDetailForSelection()
+    } catch (e: any) {
+      error = e?.message ?? 'Failed to load decks'
+      decks = []
+      detail = []
+    } finally {
+      isLoading = false
+    }
+  }
+
+  async function buildDetailForSelection() {
+    isLoadingDetail = true
+    detailError = null
+    try {
+      const filterId = selectedDeck?.id ?? 'all'
+      const filtered =
+        filterId === 'vocab'
+          ? cards.filter(c => c.type === 'vocab')
+          : filterId === 'grammar'
+          ? cards.filter(c => c.type === 'grammar')
+          : cards
+      const mapped = filtered.map(c => ({
+        id: c.id,
+        type: c.type,
+        text: `${c.front} — ${c.back}`,
+        createdAt: c.createdAt ? Date.parse(c.createdAt) : undefined,
+      }))
+      // Newest first by createdAt if available
+      mapped.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      detail = mapped
+    } catch (e: any) {
+      detailError = e?.message ?? 'Failed to load deck details'
+      detail = []
+    } finally {
+      isLoadingDetail = false
+    }
+  }
 
   function selectDeck(deck: { id: string; label: string; createdAt?: number }) {
     selectedDeck = deck
+    // Rebuild details for selection
+    buildDetailForSelection()
   }
+
+  // Load data when modal opens
+  $effect(() => {
+    open
+    if (open) {
+      loadData()
+    }
+  })
 </script>
 
 {#if open}

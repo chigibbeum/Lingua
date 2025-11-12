@@ -8,10 +8,13 @@
   import ProfileModal from './ProfileModal.svelte'
   import CreateFlashcardsModal from './components/CreateFlashcardsModal.svelte'
   import DeckLibraryModal from './DeckLibraryModal.svelte'
+  import SettingsModal from './SettingsModal.svelte'
   import { sessionStore, type SessionState } from './stores/session'
 import { saveSession } from './services/sessionService'
 import { saveSentenceWithNotes } from './services/sentenceService'
   import { isLoggedIn } from './stores/auth'
+  import { historyStore } from './stores/history'
+  import HistoryPanel from './components/HistoryPanel.svelte'
   
   type ToolbarMode = 'parsing' | 'flashcard'
   type ParsingAction = 'add-new' | 'parse' | 'edit'
@@ -30,6 +33,8 @@ import { saveSentenceWithNotes } from './services/sentenceService'
   let showCreateFlashcards = $state(false)
   let showProfile = $state(false)
   let showDeckLibrary = $state(false)
+  let showSettings = $state(false)
+  let showHistory = $state(false)
   
   let session: SessionState = $state({ mode: 'idle', current: null })
   
@@ -86,6 +91,13 @@ import { saveSentenceWithNotes } from './services/sentenceService'
       case 'parse':
         if ((session.current?.morphemes?.length ?? 0) > 0) {
           handleActionChange('parse')
+          historyStore.add({
+            scope: 'parse',
+            action: 'parse',
+            title: 'Parsed sentence',
+            snippet: session.current?.sentence ?? undefined,
+            relatedId: session.current?.id ?? undefined,
+          })
         }
         break
       case 'edit':
@@ -123,7 +135,13 @@ import { saveSentenceWithNotes } from './services/sentenceService'
           const noteInputs = morphemes.flatMap(m =>
             m.notes.map(n =>
               n.type === 'vocab'
-                ? { type: 'vocab' as const, target: n.target, native: n.native, morphemeText: m.text }
+                ? {
+                    type: 'vocab' as const,
+                    target: n.target,
+                    native: n.native,
+                    ...(('pos' in n && n.pos) ? { pos: n.pos } : {}),
+                    morphemeText: m.text,
+                  }
                 : { type: 'grammar' as const, text: n.text, morphemeText: m.text }
             )
           )
@@ -132,6 +150,14 @@ import { saveSentenceWithNotes } from './services/sentenceService'
             .then(() => {
               const count = noteInputs.length
               alert(`Saved sentence${count ? ` with ${count} note${count === 1 ? '' : 's'}` : ''}`)
+              historyStore.add({
+                scope: 'parse',
+                action: 'save',
+                title: 'Saved sentence',
+                description: count ? `Saved ${count} note${count === 1 ? '' : 's'}` : undefined,
+                snippet: text,
+                relatedId: session.current?.id ?? undefined,
+              })
               // After saving, reset to "new text" flow
               sessionStore.startNew()
               currentAction = 'add-new'
@@ -147,13 +173,27 @@ import { saveSentenceWithNotes } from './services/sentenceService'
         }
         break
       case 'history':
-        // Not implemented yet
+        showHistory = !showHistory
         break
     }
   }
+
+  // Keyboard shortcut: Ctrl/Command+Shift+H toggles history panel
+  $effect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isHistoryCombo =
+        (e.key === 'h' || e.key === 'H') && (e.ctrlKey || e.metaKey) && e.shiftKey
+      if (!isHistoryCombo) return
+      e.preventDefault()
+      e.stopPropagation()
+      showHistory = !showHistory
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
 </script>
 
-<NavigationBar onOpenSentences={() => (showSentenceLibrary = true)} onOpenDecks={() => (showDeckLibrary = true)} onOpenProfile={() => (showProfile = true)} />
+<NavigationBar onOpenSentences={() => (showSentenceLibrary = true)} onOpenDecks={() => (showDeckLibrary = true)} onOpenProfile={() => (showProfile = true)} onOpenSettings={() => (showSettings = true)} />
 <Toolbar 
   mode={mode} 
   onModeChange={onModeChange} 
@@ -175,14 +215,25 @@ import { saveSentenceWithNotes } from './services/sentenceService'
 <SentenceLibraryModal open={showSentenceLibrary} onClose={() => (showSentenceLibrary = false)} />
 <DeckLibraryModal open={showDeckLibrary} onClose={() => (showDeckLibrary = false)} />
 <ProfileModal open={showProfile} onClose={() => (showProfile = false)} />
+<SettingsModal open={showSettings} onClose={() => (showSettings = false)} />
 <CreateFlashcardsModal
   bind:isOpen={showCreateFlashcards}
   session={session.current}
   onClose={() => (showCreateFlashcards = false)}
   onCreated={(count) => {
     if (count > 0) alert(`${count} flashcard${count === 1 ? '' : 's'} created`)
+    if (count > 0) {
+      historyStore.add({
+        scope: 'parse',
+        action: 'create-flashcard',
+        title: `Created ${count} flashcard${count === 1 ? '' : 's'}`,
+        snippet: session.current?.sentence ?? undefined,
+        relatedId: session.current?.id ?? undefined,
+      })
+    }
   }}
 />
+<HistoryPanel open={showHistory} onClose={() => (showHistory = false)} />
 
 <style>
   .parse-mode {
