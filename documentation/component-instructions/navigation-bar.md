@@ -1,0 +1,26 @@
+### § 3.3 Navigation Bar
+
+- Horizontal bar that is fixed to the top of the page that covers the width of the screen.
+- Does not appear on the landing page or `Home.svelte`. Only appears on `ParseMode.svelte` and `FlashcardMode.svelte`
+- Default mode is in a collapsed state that only shows the icons. When `Open.svelte` is clicked, then the naviation bar opens revealing the text labeling each icon.
+  - All Text appear to the right of the icon
+  - Icons should move to adjust to the text
+  - Icons and Text should remain as centered as possible on the navigation bar
+  - Text tied to each icon goes as following
+    - `Open.svelte/Collapse.svelte` Dashboard
+    - `SentenceLibrary.svelte` Sentences
+    - `DeckLibrary.Svelte` Decks
+    - `Settings.svelte` Settings
+    - `HowToUse.svelte` How To Use
+    - `Login.svelete` Login
+- Background color: `#31363f`
+- Icons on the navigation bar-in order:
+  - `Open.svelte/Collapse.svelte`, `SentenceLibrary.svelte` , `DeckLibrary.Svelte` , `Settings.svelte` , `HowToUse.svelte` , and `Login.svelete`
+- Color of icons: `#76abae`
+- Use only icons from the icon folder
+- For dividers use the color : `#eeeeee`
+- All icons must be centered on the navigation bar with the exception of
+  - Login (Far right) Use `Login.svelte` as the icon
+  - Dashboard view (Far left)
+    - Use `Open.svelte` when the dashboard is closed
+    - Use `Collapse.svetle` when the dashboard is open

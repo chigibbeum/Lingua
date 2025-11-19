@@ -1,0 +1,33 @@
+<script lang="ts">
+  let {
+    stroke = 'currentColor',
+    fill = 'none',
+    size = 24,
+    strokeWidth = 1.5, // Customizable line thickness
+    class: className = '',
+    ariaLabel = 'Language', // Accessibility label
+  } = $props()
+</script>
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  {fill}
+  {stroke}
+  stroke-width={strokeWidth}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class={className}
+  role="img"
+  aria-label={ariaLabel}
+>
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+  <path d="M9 6.371c0 4.418 -2.239 6.629 -5 6.629"></path>
+  <path d="M4 6.371h7"></path>
+  <path d="M5 9c0 2.144 2.252 3.908 6 4"></path>
+  <path d="M12 20l4 -9l4 9"></path>
+  <path d="M19.1 18h-6.2"></path>
+  <path d="M6.694 3l.793 .582"></path>
+</svg>
