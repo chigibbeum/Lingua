@@ -116,12 +116,44 @@
     @apply border-border outline-ring/50;
   }
   body {
-    background-color: #222831;
-    color: #eeeeee;
+    background-color: var(--lingua-bg-main);
+    color: var(--lingua-text-secondary);
   }
   html {
-    background-color: #222831;
+    background-color: var(--lingua-bg-main);
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Lingua Design System Colors (§ 3.1)
+ * ───────────────────────────────────────────────────────────── */
+:root {
+  /* Main backgrounds */
+  --lingua-bg-main: #222831;
+  --lingua-bg-section: #31363f;
+
+  /* Text colors */
+  --lingua-text-primary: #76abae;
+  --lingua-text-secondary: #eeeeee;
+
+  /* Button colors */
+  --lingua-btn-bg: #31363f;
+  --lingua-btn-text: #eeeeee;
+  --lingua-btn-hover: #415780;
+
+  /* Accent/border */
+  --lingua-accent: #76abae;
+  --lingua-divider: #eeeeee;
+
+  /* Status colors */
+  --lingua-success: #2e7d32;
+  --lingua-success-dark: #1b5e20;
+  --lingua-error: #c62828;
+  --lingua-error-dark: #8e0000;
+  --lingua-warning: #f59e0b;
+
+  /* Border radius */
+  --lingua-radius: 0.35rem;
 }
 
 /* Home component */

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { createFlashcardsFromVocabNotes } from '@lib/services/flashcardService'
+import { createFlashcardsFromVocabNotes } from '$lib/services/flashcardService'
 
 import FlashcardCreationForm from './FlashcardCreationForm.svelte'
 

@@ -11,7 +11,15 @@ node_modules
 .npm-cache/
 dist
 dist-ssr
+build/
+.svelte-kit/
 *.local
+.env
+.env.*
+!.env.example
+
+# Firebase service accounts
+*firebase-adminsdk*.json
 
 # Editor directories and files
 .vscode/*

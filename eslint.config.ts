@@ -51,6 +51,13 @@ const config = tseslint.config(
       import: importPlugin,
     },
     settings: {
+      'import/core-modules': [
+        '$env/dynamic/private',
+        '$env/dynamic/public',
+        '$env/static/private',
+        '$env/static/public',
+        '$app/environment',
+      ],
       'import/resolver': {
         typescript: {
           project: './tsconfig.json',
@@ -83,8 +90,8 @@ const config = tseslint.config(
       'import/order': [
         'error',
         {
-          groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index'], 'type'],
-          'newlines-between': 'always',
+          groups: ['type', 'builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
+          'newlines-between': 'ignore',
         },
       ],
 

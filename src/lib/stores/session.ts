@@ -1,81 +1,127 @@
+/**
+ * Session Store
+ *
+ * Manages the current parsing session state. Business logic for morpheme
+ * manipulation is delegated to morphemeService following the "smart stores,
+ * dumb components" pattern (§ 4.2).
+ *
+ * This store manages:
+ * - Current session state (idle, editing, parsing)
+ * - Session data (sentence, morphemes, flow nodes/edges)
+ * - Export/import functionality
+ */
 import { readable, writable, type Writable } from 'svelte/store'
-import type { 
-  AppMode, 
-  PosTag, 
-  Note, 
-  MorphemeMeta, 
-  FlowNode, 
-  FlowEdge, 
-  ParseSession, 
-  SessionState 
-} from '../schemas/session'
+import type {
+  AppMode,
+  PosTag,
+  Note,
+  MorphemeMeta,
+  FlowNode,
+  FlowEdge,
+  ParseSession,
+  SessionState,
+} from '$lib/schemas/session'
+import {
+  generateId,
+  tokenizeToMorphemes,
+  morphemesToFlow,
+  breakMorphemeAt,
+  combineMorphemesByIds,
+  editMorphemeText as editMorphemeTextService,
+  insertMorpheme as insertMorphemeService,
+  addNoteToMorpheme as addNoteToMorphemeService,
+  autoSegmentSentence,
+  type SegmenterLocale,
+} from '$lib/services/morphemeService'
 
-// Re-export them so other files don't break
-export type { AppMode, PosTag, Note, MorphemeMeta, FlowNode, FlowEdge, ParseSession, SessionState }
-
-function generateId(prefix = 'id'): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`
+// Re-export types for backward compatibility
+export type {
+  AppMode,
+  PosTag,
+  Note,
+  MorphemeMeta,
+  FlowNode,
+  FlowEdge,
+  ParseSession,
+  SessionState,
 }
 
-function tokenizeToMorphemes(sentence: string): MorphemeMeta[] {
-  const now = new Date().toISOString()
-  // Tokenize into words/numbers OR single punctuation/symbol characters (Unicode aware)
-  const tokens = (sentence.match(/[\p{L}\p{N}]+|[^\s\p{L}\p{N}]/gu) ?? []).filter(Boolean)
-  return tokens.map(text => ({
-    id: generateId('m'),
-    text,
-    createdAt: now,
-    lastReviewedAt: null,
-    vocabCount: 0,
-    grammarCount: 0,
-    tags: [],
-    notes: [],
-  }))
+export interface AutoSegmentSummary {
+  applied: boolean
+  locale: SegmenterLocale
+  usedSegmenter: boolean
+  morphemeCount: number
 }
 
-function morphemesToFlow(morphemes: MorphemeMeta[]): { nodes: FlowNode[]; edges: FlowEdge[] } {
-  const nodes = morphemes.map((m, index) => ({
-    id: m.id,
-    position: {
-      x: index * 140,
-      y: 0,
-    },
-    data: {
-      label: m.text,
-    },
-    // XYFlow Svelte accepts additional styling via classes if needed
-  }))
-  const edges = morphemes.slice(1).map((m, index) => ({
-    id: `e-${morphemes[index]!.id}-${m.id}`,
-    source: morphemes[index]!.id,
-    target: m.id,
-  }))
-  return {
-    nodes,
-    edges,
+// ─────────────────────────────────────────────────────────────
+// Validation Utilities
+// ─────────────────────────────────────────────────────────────
+
+const VALID_MODES: AppMode[] = ['idle', 'editing', 'parsing']
+
+/**
+ * Type guard to validate SessionState structure.
+ * Ensures imported JSON has the expected shape.
+ */
+function isValidSessionState(value: unknown): value is SessionState {
+  if (typeof value !== 'object' || value === null) return false
+
+  const obj = value as Record<string, unknown>
+
+  // Validate mode
+  if (!VALID_MODES.includes(obj.mode as AppMode)) return false
+
+  // current can be null
+  if (obj.current === null) return true
+
+  // Validate ParseSession structure
+  if (typeof obj.current !== 'object') return false
+
+  const session = obj.current as Record<string, unknown>
+
+  // Required string fields
+  if (typeof session.id !== 'string') return false
+  if (typeof session.sentence !== 'string') return false
+  if (typeof session.createdAt !== 'string') return false
+
+  // Required array fields
+  if (!Array.isArray(session.morphemes)) return false
+  if (!Array.isArray(session.nodes)) return false
+  if (!Array.isArray(session.edges)) return false
+  if (!Array.isArray(session.tags)) return false
+
+  // Boolean field
+  if (typeof session.completed !== 'boolean') return false
+
+  // Nullable string field
+  if (session.lastReviewedAt !== null && typeof session.lastReviewedAt !== 'string') return false
+
+  return true
+}
+
+/**
+ * Validation error for invalid session imports.
+ */
+export class SessionValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SessionValidationError'
   }
 }
 
-function smartJoinMorphemes(morphemes: MorphemeMeta[]): string {
-  // No space before closing/terminal punctuation; no space after opening punctuation
-  const noSpaceBefore = /^[,.;:!?…)\]}〉》」』】、。？！：；”’»›]+$/u
-  const noSpaceAfterPrev = /^[([{\-–—“‘【《〈「『«‹]+$/u
-  let output = ''
-  let prevText = ''
-  for (const m of morphemes) {
-    const t = m.text
-    const addSpace = output.length > 0 && !noSpaceBefore.test(t) && !noSpaceAfterPrev.test(prevText)
-    output += (addSpace ? ' ' : '') + t
-    prevText = t
-  }
-  return output
-}
+// ─────────────────────────────────────────────────────────────
+// Session Store Factory
+// ─────────────────────────────────────────────────────────────
 
 function createSessionStore() {
   const { subscribe, update }: Writable<SessionState> = writable({
     mode: 'idle',
     current: null,
   })
+
+  // ─────────────────────────────────────────────────────────────
+  // Session Lifecycle
+  // ─────────────────────────────────────────────────────────────
 
   const startNew = () => {
     update(() => ({
@@ -110,9 +156,11 @@ function createSessionStore() {
   const beginParse = () => {
     update(state => {
       if (!state.current) return state
+      // Delegate tokenization to service
       const morphemes = tokenizeToMorphemes(state.current.sentence)
       const { nodes, edges } = morphemesToFlow(morphemes)
       return {
+        ...state,
         mode: 'parsing',
         current: {
           ...state.current,
@@ -122,6 +170,50 @@ function createSessionStore() {
         },
       }
     })
+  }
+
+  const autoSegment = (localePreference?: SegmenterLocale): AutoSegmentSummary => {
+    let summary: AutoSegmentSummary = {
+      applied: false,
+      locale: localePreference ?? 'en',
+      usedSegmenter: false,
+      morphemeCount: 0,
+    }
+
+    update(state => {
+      if (!state.current) return state
+
+      const sentence = state.current.sentence?.trim() ?? ''
+      if (!sentence) return state
+
+      const { morphemes, locale, usedSegmenter } = autoSegmentSentence(
+        sentence,
+        localePreference
+      )
+
+      if (!morphemes.length) return state
+
+      const { nodes, edges } = morphemesToFlow(morphemes)
+      summary = {
+        applied: true,
+        locale,
+        usedSegmenter,
+        morphemeCount: morphemes.length,
+      }
+
+      return {
+        ...state,
+        mode: 'parsing',
+        current: {
+          ...state.current,
+          morphemes,
+          nodes,
+          edges,
+        },
+      }
+    })
+
+    return summary
   }
 
   const toggleEdit = () => {
@@ -144,130 +236,24 @@ function createSessionStore() {
     })
   }
 
-  const exportJSON = () => {
-    let snapshot: SessionState | null = null
-    const unsub = subscribe(s => (snapshot = s))
-    unsub()
-    const data = JSON.stringify(snapshot, null, 2)
-    const blob = new Blob([data], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `lingua-session-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const importJSON = async (file: File) => {
-    const text = await file.text()
-    const snapshot = JSON.parse(text) as SessionState
-    update(() => snapshot)
-  }
-
-  const addNoteToMorpheme = (
-    morphemeId: string,
-    payload:
-      | { type: 'vocab'; target: string; native: string; pos?: PosTag; tags?: string[] }
-      | { type: 'grammar'; text: string }
-  ) => {
-    update(state => {
-      if (!state.current) return state
-      const morphemes = state.current.morphemes.map(m => {
-        if (m.id === morphemeId) {
-          const now = new Date().toISOString()
-          const note: Note =
-            payload.type === 'vocab'
-              ? {
-                  id: generateId('n'),
-                  type: 'vocab',
-                  target: payload.target,
-                  native: payload.native,
-                  ...(payload.pos
-                    ? {
-                        pos: payload.pos,
-                      }
-                    : {}),
-                  ...(payload.tags && payload.tags.length
-                    ? {
-                        tags: payload.tags,
-                      }
-                    : {}),
-                  createdAt: now,
-                }
-              : {
-                  id: generateId('n'),
-                  type: 'grammar',
-                  text: payload.text,
-                  createdAt: now,
-                }
-          const vocabCount = note.type === 'vocab' ? m.vocabCount + 1 : m.vocabCount
-          const grammarCount = note.type === 'grammar' ? m.grammarCount + 1 : m.grammarCount
-          return {
-            ...m,
-            notes: [...m.notes, note],
-            vocabCount,
-            grammarCount,
-          }
-        }
-        return m
-      })
-      const { nodes, edges } = morphemesToFlow(morphemes)
-      return {
-        ...state,
-        current: {
-          ...state.current,
-          morphemes,
-          nodes,
-          edges,
-        },
-      }
-    })
-  }
+  // ─────────────────────────────────────────────────────────────
+  // Morpheme Operations (delegated to morphemeService)
+  // ─────────────────────────────────────────────────────────────
 
   const breakMorpheme = (morphemeId: string, breakIndex: number) => {
     update(state => {
       if (!state.current) return state
-      const morphemeIndex = state.current.morphemes.findIndex(m => m.id === morphemeId)
-      if (morphemeIndex === -1) return state
 
-      const morpheme = state.current.morphemes[morphemeIndex]!
-      const beforeText = morpheme.text.substring(0, breakIndex).trim()
-      const afterText = morpheme.text.substring(breakIndex).trim()
+      // Delegate to service
+      const result = breakMorphemeAt(state.current.morphemes, morphemeId, breakIndex)
+      if (!result) return state
 
-      if (!beforeText || !afterText) return state
-
-      const now = new Date().toISOString()
-      const newMorpheme: MorphemeMeta = {
-        id: generateId('m'),
-        text: afterText,
-        createdAt: now,
-        lastReviewedAt: null,
-        vocabCount: 0,
-        grammarCount: 0,
-        tags: [],
-        notes: [],
-      }
-
-      const updatedMorpheme: MorphemeMeta = {
-        ...morpheme,
-        text: beforeText,
-      }
-
-      const morphemes = [
-        ...state.current.morphemes.slice(0, morphemeIndex),
-        updatedMorpheme,
-        newMorpheme,
-        ...state.current.morphemes.slice(morphemeIndex + 1),
-      ]
-
-      const { nodes, edges } = morphemesToFlow(morphemes)
+      const { nodes, edges } = morphemesToFlow(result)
       return {
         ...state,
         current: {
           ...state.current,
-          morphemes,
+          morphemes: result,
           nodes,
           edges,
         },
@@ -279,49 +265,16 @@ function createSessionStore() {
     update(state => {
       if (!state.current || morphemeIds.length < 2) return state
 
-      const indices = morphemeIds
-        .map(id => state.current!.morphemes.findIndex(m => m.id === id))
-        .filter(idx => idx !== -1)
-        .sort((a, b) => a - b)
+      // Delegate to service
+      const result = combineMorphemesByIds(state.current.morphemes, morphemeIds)
+      if (!result) return state
 
-      if (indices.length < 2) return state
-
-      const idxFirst = indices[0]!
-      const firstMorpheme = state.current.morphemes[idxFirst]!
-      const combinedText = indices.map(idx => state.current!.morphemes[idx]!)
-      const combinedJoined = smartJoinMorphemes(combinedText)
-
-      const combinedNotes = indices.flatMap(idx => state.current!.morphemes[idx]!.notes)
-      const combinedVocabCount = indices.reduce(
-        (sum, idx) => sum + state.current!.morphemes[idx]!.vocabCount,
-        0
-      )
-      const combinedGrammarCount = indices.reduce(
-        (sum, idx) => sum + state.current!.morphemes[idx]!.grammarCount,
-        0
-      )
-
-      const combinedMorpheme: MorphemeMeta = {
-        ...firstMorpheme,
-        text: combinedJoined,
-        notes: combinedNotes,
-        vocabCount: combinedVocabCount,
-        grammarCount: combinedGrammarCount,
-      }
-
-      const idxLast = indices[indices.length - 1]!
-      const morphemes = [
-        ...state.current.morphemes.slice(0, indices[0]),
-        combinedMorpheme,
-        ...state.current.morphemes.slice(idxLast + 1),
-      ]
-
-      const { nodes, edges } = morphemesToFlow(morphemes)
+      const { nodes, edges } = morphemesToFlow(result)
       return {
         ...state,
         current: {
           ...state.current,
-          morphemes,
+          morphemes: result,
           nodes,
           edges,
         },
@@ -332,23 +285,18 @@ function createSessionStore() {
   const editMorphemeText = (morphemeId: string, newText: string) => {
     update(state => {
       if (!state.current) return state
-      const morphemes = state.current.morphemes.map(m => {
-        if (m.id === morphemeId) {
-          return {
-            ...m,
-            text: newText,
-          }
-        }
-        return m
-      })
-      const sentence = smartJoinMorphemes(morphemes)
-      const { nodes, edges } = morphemesToFlow(morphemes)
+
+      // Delegate to service
+      const result = editMorphemeTextService(state.current.morphemes, morphemeId, newText)
+      if (!result) return state
+
+      const { nodes, edges } = morphemesToFlow(result.morphemes)
       return {
         ...state,
         current: {
           ...state.current,
-          sentence,
-          morphemes,
+          sentence: result.sentence,
+          morphemes: result.morphemes,
           nodes,
           edges,
         },
@@ -363,35 +311,47 @@ function createSessionStore() {
   ) => {
     update(state => {
       if (!state.current) return state
-      const targetIndex = state.current.morphemes.findIndex(m => m.id === targetMorphemeId)
-      if (targetIndex === -1) return state
 
-      const now = new Date().toISOString()
-      const newMorpheme: MorphemeMeta = {
-        id: generateId('m'),
-        text: newText,
-        createdAt: now,
-        lastReviewedAt: null,
-        vocabCount: 0,
-        grammarCount: 0,
-        tags: [],
-        notes: [],
-      }
+      // Delegate to service
+      const result = insertMorphemeService(
+        state.current.morphemes,
+        position,
+        targetMorphemeId,
+        newText
+      )
+      if (!result) return state
 
-      const insertIndex = position === 'left' ? targetIndex : targetIndex + 1
-      const morphemes = [
-        ...state.current.morphemes.slice(0, insertIndex),
-        newMorpheme,
-        ...state.current.morphemes.slice(insertIndex),
-      ]
-
-      const sentence = smartJoinMorphemes(morphemes)
-      const { nodes, edges } = morphemesToFlow(morphemes)
+      const { nodes, edges } = morphemesToFlow(result.morphemes)
       return {
         ...state,
         current: {
           ...state.current,
-          sentence,
+          sentence: result.sentence,
+          morphemes: result.morphemes,
+          nodes,
+          edges,
+        },
+      }
+    })
+  }
+
+  const addNoteToMorpheme = (
+    morphemeId: string,
+    payload:
+      | { type: 'vocab'; target: string; native: string; pos?: PosTag; tags?: string[] }
+      | { type: 'grammar'; text: string }
+  ) => {
+    update(state => {
+      if (!state.current) return state
+
+      // Delegate to service
+      const morphemes = addNoteToMorphemeService(state.current.morphemes, morphemeId, payload)
+      const { nodes, edges } = morphemesToFlow(morphemes)
+
+      return {
+        ...state,
+        current: {
+          ...state.current,
           morphemes,
           nodes,
           edges,
@@ -400,11 +360,56 @@ function createSessionStore() {
     })
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Export/Import
+  // ─────────────────────────────────────────────────────────────
+
+  const exportJSON = () => {
+    let snapshot: SessionState | null = null
+    const unsub = subscribe(s => (snapshot = s))
+    unsub()
+
+    const data = JSON.stringify(snapshot, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `lingua-session-${Date.now()}.json`
+    a.click()
+
+    URL.revokeObjectURL(url)
+  }
+
+  const importJSON = async (file: File) => {
+    const text = await file.text()
+
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      throw new SessionValidationError('Invalid JSON format in session file')
+    }
+
+    if (!isValidSessionState(parsed)) {
+      throw new SessionValidationError(
+        'Invalid session file structure. Expected a valid SessionState object with mode, and optional current session data.'
+      )
+    }
+
+    update(() => parsed)
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────────────────────
+
   return {
     subscribe,
     startNew,
     updateSentence,
     beginParse,
+    autoSegment,
     toggleEdit,
     setCompleted,
     exportJSON,
@@ -416,6 +421,10 @@ function createSessionStore() {
     insertMorpheme,
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Store Exports
+// ─────────────────────────────────────────────────────────────
 
 export const sessionStore = createSessionStore()
 

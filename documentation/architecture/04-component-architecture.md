@@ -7,121 +7,85 @@ Lingua follows a component-based architecture using Svelte 5 with traditional re
 ## Component Hierarchy
 
 ```
-App.svelte (Root)
+src/routes/+layout.svelte (Root shell: global CSS, XYFlow styles, Firebase bootstrap)
 │
-├─ NavBar.svelte (Global Navigation)
-│
-└─ Router (svelte-spa-router)
+└─ src/routes/+page.svelte (Client-side controller powered by stores/router.ts)
     │
-    ├─ Home.svelte (Study Page)
-    |   |─ ToolBar.svelte
-    │   ├─ Parsing.svelte
-    │   │   └─ FlashcardSettings.svelte
-    │
-
+    ├─ LandingPage.svelte (public entry)
+    ├─ LoginPage.svelte (auth wall)
+    ├─ Home.svelte (mode picker dashboard)
+    ├─ ParseMode.svelte (parsing workflow)
+    │   └─ NavigationBar + Toolbar + parse/*Action + modal stack
+    └─ FlashcardMode.svelte (flashcard workflow)
+        └─ NavigationBar + Toolbar + review controls + modal stack
 ```
 
 ## Component Categories
 
-### 1. Page Components
+### 1. Route Shell & Views
 
-**Location**: `/src/pages/`
+**Location**: `src/routes/+layout.svelte`, `src/routes/+page.svelte`, and `$lib/components/views`
 
-Top-level route components that orchestrate business logic and layout.
+Top-level UI in the Kit-based app is defined by the root layout plus the single page module. All “pages” from the legacy SPA now live as view components that `+page.svelte` renders conditionally based on the router store.
 
-#### Home.svelte
+#### `src/routes/+layout.svelte`
 
-**Purpose**: Study interface with mode picker
+- Loads global CSS (`app.css`), XYFlow styles, and initializes Firebase once.
+- Wraps the routed content with `{@render children()}` so all downstream components inherit these providers.
 
-```svelte
-<script>
-  import Flashcard from '../lib/components/home/Flashcard.svelte'
-  import ActionBar from '../lib/components/home/ActionBar.svelte'
+#### `src/routes/+page.ts` and filesystem routes
 
-  let showSettings = false
-</script>
+- `+page.ts` immediately redirects to `/landing` (respecting `kit.paths.base`) so browser refreshes always land on a valid route.
+- Each primary surface uses its own filesystem route. Authenticated routes (`/home`, `/parse`, `/flashcard`) live inside the `(protected)` group so they share a guard layout that watches `$authReady`/`$isLoggedIn` and bounces anonymous visitors to `/landing`.
 
-<section class="container centered">
-  <Flashcard bind:showSettings />
-  <ActionBar on:openSettings={() => (showSettings = true)} />
-</section>
+```
+src/routes/
+├─ +layout.svelte
+├─ +page.ts                # redirects → /landing
+├─ landing/+page.svelte    # public marketing surface
+├─ login/+page.svelte      # auth wall
+└─ (protected)/
+   ├─ +layout.svelte       # auth gate
+   ├─ home/+page.svelte    # dashboard
+   ├─ parse/+page.svelte   # parsing workflow
+   └─ flashcard/+page.svelte
 ```
 
-**Responsibilities:**
+- `(protected)/+layout.server.ts` exposes any cookie/session metadata to downstream pages (placeholder today, future home for Firebase Admin validation).
+- `home/+page.ts` snapshots the dashboard state (active mode, totals, and recent history) so `Home.svelte` can render stats immediately after navigation.
+- `parse/+page.ts` hydrates the current editing session, recent parsing history, and saved sentences from Firestore (gracefully falling back when unauthenticated).
+- `flashcard/+page.ts` prefetches flashcards plus recent review history so `FlashcardMode` can skip an extra load when possible.
 
-- Layout study interface
-- Manage settings panel state
-- Coordinate flashcard and action bar
+#### `LandingPage.svelte`
 
-#### Create.svelte
+- Public marketing/primer surface.
+- Default route for signed-out users (the router forces `landing` until `authReady && isLoggedIn`).
 
-**Purpose**: Flashcard creation and import
+#### `Home.svelte`
 
-**Responsibilities:**
+- Minimal dashboard that exposes parse vs flashcard entry points via icon buttons.
+- Emits `onNavigate` events (`'parse' | 'flashcard'`) so the route file can call `goto('/parse')` or `goto('/flashcard')`, keeping filesystem routing in control.
 
-- Manage flashcard creation form
-- Handle CSV import
-- Tag management interface
-- Success/error feedback
+#### `ParseMode.svelte`
 
-#### Lexicon.svelte
+- Houses the full parsing workflow and enforces the design constraints from §3.5–§3.6 (toolbar, modes, seamless transitions).
+- Accepts optional `initialSession`, `historySnapshot`, and `savedSentences` props from `parse/+page.ts` to hydrate the UI banner and prep future store rehydration logic.
+- Imports NavigationBar + Toolbar from `$lib/components/layout`, renders `AddNewTextAction`, `ParseTextAction`, or `EditTextAction`, and coordinates modal visibility (sentence/deck libraries, settings, flashcard creation, history).
+- Syncs session data through `sessionStore`/`historyStore` using the Smart Store pattern described in §4.4.3.
 
-**Purpose**: Flashcard library and management
+#### `FlashcardMode.svelte`
 
-```svelte
-<script>
-  import { flashcardsStore } from '../lib/stores/flashcardsStore.js'
-  import { tagsStore } from '../lib/stores/tagsStore.js'
-  import { foldersStore } from '../lib/stores/foldersStore.js'
-  import { derived, writable } from 'svelte/store'
-  import FlashcardTableView from '../lib/components/lexicon/FlashcardTableView.svelte'
-  import EditFlashcardModal from '../lib/components/lexicon/EditFlashcardModal.svelte'
-  
-  let viewMode = 'table' // 'list' or 'table' (table is default)
-  const searchQuery = writable('')
-  let showEditModal = false
-  let editingCard = null
-  
-  // Derived store for filtered/sorted cards
-  const cardsSorted = derived([flashcardsStore, tagsStore, foldersStore, searchQuery], ...)
-</script>
-```
+- Mirrors the chrome from Parse mode but wires toolbar actions to flashcard review behavior (add card, history, etc.).
+- Receives `initialCards` and `historySnapshot` from `flashcard/+page.ts`, letting the component render prefetched decks before falling back to live fetching.
+- Loads cards via `flashcardService`, manages swipe/keyboard interactions, and logs progress to `historyStore`.
 
-**Responsibilities:**
+#### `LoginPage.svelte`
 
-- Display flashcard collection with multiple view modes:
-  - List view (compact text-based display)
-  - Gallery view (card-based display with size options: small, medium, large)
-  - Graph view (force-directed visualization - optional)
-- Search functionality across vocabulary, translation, tags, and folders
-- Modal-based editing via EditFlashcardModal
-- Delete operations with confirmation
-- View mode toggle with localStorage persistence
-- Gallery card size preference persistence
-- Folder management integration
+- Dedicated authentication surface, rendered automatically when an unauthenticated user navigates into a protected route.
 
-#### Login.svelte
+#### `ProfilePage.svelte`
 
-**Purpose**: User authentication
-
-**Responsibilities:**
-
-- Email/password login
-- OAuth providers
-- Magic link
-- Phone number verification
-- Password reset
-
-#### Profile.svelte
-
-**Purpose**: User settings and preferences
-
-**Responsibilities:**
-
-- Display user profile
-- Manage preferences
-- View statistics
-- Account management
+- Reserved view for account management. Lives under `views/` to follow the same routing contract even when not actively mounted.
 
 ### 2. Feature Components
 
@@ -353,7 +317,7 @@ import LoadingSpinner from '../lib/components/shared/LoadingSpinner.svelte' impo
 
 <nav class="nav container">
   <div class="nav__brand">
-    <a href="#/" on:click|preventDefault={() => onNavigate('/')}> FLIP </a>
+    <a href="#/" on:click|preventDefault={() => onNavigate('/')}> LINGUA </a>
   </div>
   <div class="nav__actions">
     <button on:click={() => onNavigate('/login')}>login</button>

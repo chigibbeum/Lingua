@@ -1,0 +1,17 @@
+---
+description: Project overview — what Lingua is building
+alwaysApply: true
+intent: Keep a concise, always-on mental model of the product
+---
+
+- What: Minimal language learning app for sentence parsing and flashcard review—no feature bloat, no membership required.
+- Current state: Two primary modes—Parsing Mode (text tokenization, morpheme notes) and Flashcard Mode (deck-based review, filtering).
+- Principles (agent-facing): simplicity first; user owns their data (`ownerUid` on all docs); validate with Zod schemas; follow design system colors and icon conventions.
+- App shape: SPA with toolbar-driven mode switching. Parsing Mode handles text input → tokenization → notes → flashcard creation. Flashcard Mode handles review, filtering, and deck organization.
+- Inputs: User-typed or pasted sentences in target language; notes (vocab/grammar) attached to morphemes; flashcards generated from notes.
+- Flow: Text Entry → Tokenize → Parse (break/combine nodes) → Add Notes → Create Flashcards → Study (spaced repetition).
+- Invariants: all data filtered by `ownerUid`; Firestore security rules enforce user isolation; seamless mode transitions; consistent UI via design tokens in `app.css`.
+- For details (attach on demand):
+  - documentation/architecture/00-system-overview.md
+  - documentation/architecture/01-data-architecture.md
+  - documentation/architecture/04-component-architecture.md

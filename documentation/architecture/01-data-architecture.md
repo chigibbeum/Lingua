@@ -2,7 +2,7 @@
 
 ## Overview
 
-FLIP uses a real-time, document-based architecture powered by Cloud Firestore with reactive Svelte stores for client-side state management. This architecture enables instant UI updates, offline support, and multi-device synchronization.
+LINGUA uses a real-time, document-based architecture powered by Cloud Firestore with reactive Svelte stores for client-side state management. This architecture enables instant UI updates, offline support, and multi-device synchronization.
 
 ## Architecture Pattern
 

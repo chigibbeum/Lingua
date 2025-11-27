@@ -1,3 +1,4 @@
+import { browser } from '$app/environment'
 import { writable, derived } from 'svelte/store'
 import {
   onAuthStateChanged,
@@ -12,7 +13,7 @@ import {
   type User,
 } from 'firebase/auth'
 
-import { auth } from '../firebase'
+import { auth } from '../firebase/client'
 
 // Primary user store
 export const user = writable<User | null>(null)
@@ -24,15 +25,60 @@ export const authReady = writable(false)
 
 let initialized = false
 function initAuthListener() {
-  if (initialized) return
+  if (initialized || !browser || !auth) return
   initialized = true
-  onAuthStateChanged(auth, current => {
+  onAuthStateChanged(auth, async current => {
+    console.log('[auth] onAuthStateChanged fired', current ? 'with user' : 'no user')
+    const start = performance.now()
+    // Reset authReady while we sync the session - prevents premature redirects
+    authReady.set(false)
     user.set(current)
+    try {
+      await syncServerSession(current)
+      console.log(
+        '[auth] syncServerSession completed in',
+        Math.round(performance.now() - start),
+        'ms'
+      )
+    } catch (err) {
+      console.warn('[auth] Failed to sync server session', err)
+    }
     authReady.set(true)
+    console.log('[auth] authReady set to true')
   })
 }
 
-initAuthListener()
+if (browser) {
+  initAuthListener()
+}
+
+async function syncServerSession(current: User | null): Promise<void> {
+  if (typeof window === 'undefined' || typeof fetch === 'undefined') return
+  try {
+    if (current) {
+      const t1 = performance.now()
+      const idToken = await current.getIdToken()
+      console.log('[auth] getIdToken took', Math.round(performance.now() - t1), 'ms')
+      const t2 = performance.now()
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ idToken }),
+      })
+      console.log('[auth] POST /api/session took', Math.round(performance.now() - t2), 'ms')
+    } else {
+      await fetch('/api/session', {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+    }
+  } catch (error) {
+    throw error
+  }
+}
 
 export async function choosePersistence(rememberMe: boolean): Promise<void> {
   const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence

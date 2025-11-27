@@ -2,7 +2,7 @@
 
 ## Overview
 
-FLIP implements an intelligent spaced repetition system (SRS) based on the SM-2 algorithm to optimize long-term memory retention. The system tracks user performance, calculates optimal review intervals, and provides visual feedback on mastery progress.
+LINGUA implements an intelligent spaced repetition system (SRS) based on the SM-2 algorithm to optimize long-term memory retention. The system tracks user performance, calculates optimal review intervals, and provides visual feedback on mastery progress.
 
 ## Architecture
 
@@ -65,7 +65,7 @@ The **SuperMemo 2 (SM-2)** algorithm optimizes review timing based on the forget
 
 ### Quality Scoring
 
-In FLIP, quality is simplified to binary (correct/incorrect):
+In LINGUA, quality is simplified to binary (correct/incorrect):
 
 ```javascript
 const quality = wasCorrect ? 4 : 1

@@ -1,5 +1,5 @@
 import {
-  collectionGroup,
+  collection,
   getDocs,
   orderBy,
   query,
@@ -9,31 +9,23 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 
-import { db } from '../firebase'
+import { db } from '../firebase/client'
 
-export type PublicNote = {
-  id: string
-  ownerUid: string
-  sentenceId: string | null
-  type: 'vocab' | 'grammar'
-  text?: string
-  target?: string
-  native?: string
-  createdAt: string | null
-}
+import type { PublicNote } from '../schemas/note'
+
+export type { PublicNote }
 
 /**
- * List public notes across all users using a collection group query.
+ * List public notes from the top-level notes collection.
  * Optional filters can be added later (e.g., by type).
  */
 export async function listPublicNotes(limitN = 20): Promise<PublicNote[]> {
   const constraints: QueryConstraint[] = [
     where('visibility', '==', 'public'),
     orderBy('createdAt', 'desc'),
-    // Firestore will prompt for an index if needed
   ]
-  const cg = collectionGroup(db, 'notes')
-  const q = query(cg, ...constraints)
+  const ref = collection(db, 'notes')
+  const q = query(ref, ...constraints)
   const snap = await getDocs(q)
   const items: PublicNote[] = []
   snap.forEach(d => {
@@ -45,7 +37,8 @@ export async function listPublicNotes(limitN = 20): Promise<PublicNote[]> {
         : typeof createdValue === 'string'
           ? createdValue
           : null
-    const sentenceId = d.ref.parent?.parent?.id ?? null
+    // sentenceId is stored as a field in top-level notes collection
+    const sentenceId = typeof data.sentenceId === 'string' ? data.sentenceId : null
     const item: PublicNote = {
       id: d.id,
       ownerUid: String(data.ownerUid ?? ''),

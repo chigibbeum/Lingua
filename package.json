@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "svelte-kit sync && vite dev",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -23,7 +23,12 @@
     "@sveltejs/kit": "^2.48.5",
     "@tailwindcss/postcss": "^4.1.16",
     "@tsconfig/svelte": "^5.0.5",
+    "@types/connect": "^3.4.38",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/long": "^4.0.2",
     "@types/node": "^24.6.0",
+    "@types/request": "^2.48.13",
     "autoprefixer": "^10.4.21",
     "bits-ui": "^2.11.7",
     "clsx": "^2.1.1",
@@ -32,6 +37,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-svelte": "^3.13.0",
+    "firebase-tools": "^14.26.0",
     "globals": "^16.5.0",
     "lightningcss-darwin-x64": "^1.30.2",
     "patch-package": "^8.0.1",
@@ -55,6 +61,7 @@
   },
   "dependencies": {
     "@xyflow/svelte": "^1.4.0",
-    "firebase": "^12.5.0"
+    "firebase": "^12.6.0",
+    "firebase-admin": "^12.6.0"
   }
 }

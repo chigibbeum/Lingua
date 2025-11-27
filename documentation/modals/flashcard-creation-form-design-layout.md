@@ -1,6 +1,6 @@
 ## Flashcard Creation Form — Design & Layout
 
-This document describes the visual design, layout, and interaction patterns for the Flashcard Creation Form (`web/src/lib/components/create/FlashcardCreationForm.svelte`). It is aligned with the FLIP Project Guidelines.
+This document describes the visual design, layout, and interaction patterns for the Flashcard Creation Form (`web/src/lib/components/create/FlashcardCreationForm.svelte`). It is aligned with the LINGUA Project Guidelines.
 
 ### Guideline Alignment
 

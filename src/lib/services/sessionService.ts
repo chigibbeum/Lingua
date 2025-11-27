@@ -10,8 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 
-import { db } from '../firebase'
-import { auth } from '../firebase'
+import { db, auth } from '../firebase/client'
 import { ensureUserDocument } from './userService'
 
 import type { ParseSession } from '../stores/session'

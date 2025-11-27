@@ -11,21 +11,14 @@ import {
   type QuerySnapshot,
 } from 'firebase/firestore'
 
-import { db, auth } from '../firebase'
+import { db } from '../firebase/client'
 import { ensureUserDocument } from './userService'
+import { requireUserId } from './authUtils'
 
 import type { ParseSession } from '../stores/session'
 import type { Flashcard, VocabFlashInput, FlashcardDoc } from '../schemas/flashcard'
 
 export type { Flashcard, VocabFlashInput, FlashcardDoc }
-
-function requireUserId(): string {
-  const current = auth.currentUser
-  if (!current?.uid) {
-    throw new Error('Not authenticated')
-  }
-  return current.uid
-}
 
 export async function createFlashcardsFromSession(session: ParseSession): Promise<number> {
   if (!session) return 0
@@ -63,6 +56,16 @@ function resolveCreatedAt(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+function optionalString(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number' || typeof value === 'bigint' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return undefined
+}
+
 export async function listVocabFlashcardsBySentenceText(
   sentenceText: string
 ): Promise<Flashcard[]> {
@@ -84,10 +87,10 @@ export async function listVocabFlashcardsBySentenceText(
       type: data.type ?? 'vocab',
       front: String(data.front ?? ''),
       back: String(data.back ?? ''),
-      sentenceText: data.sentenceText ?? undefined,
-      morphemeText: data.morphemeText ?? undefined,
-      sentenceId: data.sentenceId ?? undefined,
-      morphemeId: data.morphemeId ?? undefined,
+      sentenceText: optionalString(data.sentenceText),
+      morphemeText: optionalString(data.morphemeText),
+      sentenceId: optionalString(data.sentenceId),
+      morphemeId: optionalString(data.morphemeId),
       createdAt: created,
     })
   })
@@ -182,10 +185,10 @@ export async function listFlashcards(type?: 'vocab' | 'grammar'): Promise<Flashc
         type: (data.type ?? 'vocab') as 'vocab' | 'grammar',
         front: String(data.front ?? ''),
         back: String(data.back ?? ''),
-        sentenceText: data.sentenceText ?? undefined,
-        morphemeText: data.morphemeText ?? undefined,
-        sentenceId: data.sentenceId ?? undefined,
-        morphemeId: data.morphemeId ?? undefined,
+        sentenceText: optionalString(data.sentenceText),
+        morphemeText: optionalString(data.morphemeText),
+        sentenceId: optionalString(data.sentenceId),
+        morphemeId: optionalString(data.morphemeId),
         createdAt: created,
         ...(data.pos !== undefined
           ? {

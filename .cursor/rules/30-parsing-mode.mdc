@@ -1,0 +1,91 @@
+---
+description: Parsing mode features, 6 actions, text tokenization, node interactions
+globs: "**/parse/**,**/modes/ParsingMode.svelte,**/ParseMode.svelte"
+alwaysApply: false
+---
+
+# Parsing Mode Guidelines
+
+## § 1.0 Overview
+
+In parsing mode, users enter, edit, parse, and save text with vocabulary/grammar notes.
+
+### Main Features
+- Entering and submitting text
+- Text color: `#eeeeee`
+- Inline tokenized text with contextual highlighting (`#31363f`)
+- Editing already inputted text
+- Saving text with date/tagging organization
+
+## § 2.0 Six Actions
+
+| # | Action | Icon | Description |
+|---|--------|------|-------------|
+| 1 | Add New Text | `NewText.svelte` | Default on startup; submit via Enter or Submit button |
+| 2 | Parse Text | `ParseText.svelte` | Break/combine nodes, add notes via popovers |
+| 3 | Edit Text | `EditText.svelte` | Insert left/right, edit node content |
+| 4 | Create Flashcards | `CreateFlashcards.svelte` | Convert vocab notes to flashcards |
+| 5 | Save Notes | `SaveNotes.svelte` | Modal for title, tags, created date |
+| 6 | View History | `HistoryView.svelte` | Side panel showing change log |
+
+## § 3.0 Text Input Design (Add New Text)
+
+- No surrounding box or background
+- Placeholder: "insert text" in secondary text color (`#eeeeee`)
+- Cursor should be clearly visible and ready for typing
+- Submit via Enter key or `CheckSubmit.svelte` icon
+- Submit button (text, no background) appears only after typing starts
+- After submission, cursor disappears
+- Use inline tokenized text with contextual highlighting
+- Automatically switch to Parse action after submission
+
+### Before New Text
+- Prompt to save or continue without saving
+
+## § 4.0 Parse Text Action
+
+### Single Click/Hover on Node
+Popover appears with:
+- `Break.svelte` — break node at cursor position
+- `AddNote.svelte` — add vocabulary/grammar note
+
+### Multi-Node Selection (Highlight)
+Popover appears with:
+- `Combine.svelte` — merge selected nodes (maintain proper spacing)
+- `AddNote.svelte` — add note to combined node
+
+### Breaking a Node
+- Cursor appears in node
+- User selects break position
+- Press Space or Enter to break at cursor
+
+### Adding a Note
+- Opens `AddNoteModal.svelte`
+- After adding, "n" badge appears in top-right corner of node (`#76abae`)
+- Node background remains `#31363f`
+
+## § 5.0 Edit Text Action
+
+When user clicks a node, popover shows:
+- Top half: text input box
+- Bottom half: three icons
+  - `InsertLeft.svelte` — add node to the left
+  - `EditNode.svelte` — edit current node text
+  - `InsertRight.svelte` — add node to the right
+
+Submit via Enter or selecting a command.
+
+## § 6.0 Component Naming
+
+Name action components: `{ActionName}Action.svelte`
+- `AddNewTextAction.svelte`
+- `ParseTextAction.svelte`
+- `EditTextAction.svelte`
+- etc.
+
+## § 7.0 Transitions
+
+Match seamless transition from Toolbar guidelines:
+- Single state variable controls displayed action
+- Outer boundary remains stable
+- Use `transition-all duration-500` for smooth rendering

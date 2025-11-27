@@ -124,7 +124,7 @@ This document consolidates all major architectural diagrams for quick reference.
        │ User tries to recall
        ▼
 ┌──────────────────┐
-│ User clicks FLIP │
+│ User clicks LINGUA │
 └──────┬───────────┘
        │
        ▼

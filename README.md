@@ -1,6 +1,6 @@
 # Lingua
 
-Lingua is a Vite + Svelte 5 application that powers the language-learning tooling for parsing texts, managing flashcards, and reviewing study history. The repository now lives entirely at the project root (`/Users/<you>/Desktop/Lingua`) so there is only one `package.json`/`node_modules` tree to worry about.
+Lingua is a SvelteKit (Svelte 5 + Vite) application that powers the language-learning tooling for parsing texts, managing flashcards, and reviewing study history. The repository now lives entirely at the project root (`/Users/<you>/Desktop/Lingua`) so there is only one `package.json`/`node_modules` tree to worry about.
 
 ## Getting Started
 
@@ -33,6 +33,21 @@ Lingua is a Vite + Svelte 5 application that powers the language-learning toolin
    npm run build
    ```
    Output is written to `dist/` and can be previewed with `npm run preview`.
+
+## Environment Variables
+
+Server-rendered auth relies on the Firebase Admin SDK:
+
+1. Copy `env.example` to `.env.local` (or `.env`):
+   ```bash
+   cp env.example .env.local
+   ```
+2. Fill in the values:
+   - `FIREBASE_*` entries come from your Firebase Web App settings.
+   - `FIREBASE_ADMIN_*` entries come from a service account JSON. Keep the private key wrapped in quotes, with literal `\n` between lines: `"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"`.
+3. Restart `npm run dev` so SvelteKit picks up the new variables.
+
+When deploying, configure the same keys in your hosting provider’s dashboard so protected routes continue to work.
 
 ## Useful Scripts
 

@@ -1,0 +1,76 @@
+---
+description: Icon component props, import patterns, color integration
+globs: "**/icons/**,**/*.svelte"
+alwaysApply: false
+---
+
+# Icon Usage Guidelines
+
+## § 1.0 Available Icons
+
+| Icon | Purpose |
+|------|---------|
+| `Abc.svelte` | Parsing Mode toggle |
+| `AddFlashcards.svelte` | Create flashcards |
+| `AddNote.svelte` | Add note popover command |
+| `Break.svelte` | Break node popover command |
+| `Calendar.svelte` | Filter by date |
+| `Collapse.svelte` | Close navigation bar |
+| `Combine.svelte` | Combine nodes command |
+| `DeckLibrary.svelte` | Open flashcard library |
+| `DeleteGarbageIcon.svelte` | Delete content |
+| `EditNode.svelte` | Edit text in node |
+| `EditText.svelte` | Edit mode toggle |
+| `Filter.svelte` | Filter options |
+| `FlashcardMode.svelte` | Flashcard Mode toggle |
+| `HistoryView.svelte` | View recent changes |
+| `HowToUse.svelte` | Help page |
+| `InsertLeft.svelte` | Insert node left |
+| `InsertRight.svelte` | Insert node right |
+| `Login.svelte` | Login page |
+| `NewText.svelte` | Start new sentence |
+| `Open.svelte` | Open navigation bar |
+| `ParseText.svelte` | Parse submitted text |
+| `SaveNotes.svelte` | Save notes |
+| `SentenceLibrary.svelte` | Open sentence library |
+| `Settings.svelte` | Settings page |
+| `VocabNote.svelte` | Vocabulary note command |
+
+## § 2.0 Component Props
+
+All icon components accept these props (via `$props()` rune):
+
+| Prop | Type | Default | Purpose |
+|------|------|---------|---------|
+| `stroke` | string | `'currentColor'` | Icon stroke color |
+| `fill` | string | `'none'` | Icon fill color |
+| `size` | number | `24` | Width and height in pixels |
+| `class` | string | `''` | Additional CSS classes |
+
+## § 3.0 Import Pattern
+
+```svelte
+<script>
+  import Abc from '$lib/icons/Abc.svelte'
+</script>
+```
+
+## § 4.0 Color Integration
+
+```svelte
+<!-- Navigation bar icons -->
+<Icon stroke="#76abae" />
+
+<!-- Toolbar icons -->
+<Icon stroke="#eeeeee" />
+
+<!-- Active/highlight state -->
+<Icon stroke="#76abae" />
+```
+
+## § 5.0 MUST NOT
+
+- Hardcode SVG markup directly in components
+- Use arbitrary colors outside the design system
+- Forget size for icons in different contexts
+- Omit aria-label on icon buttons

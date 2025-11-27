@@ -8,8 +8,11 @@ const config = {
 		adapter: adapter({
 			fallback: 'index.html'
 		}),
+		paths: {
+			base: ''
+		},
 		alias: {
-			'@icons': 'src/icons',
+			'@icons': 'src/lib/icons',
 			'@lib': 'src/lib'
 		}
 	}

@@ -1,0 +1,87 @@
+---
+description: Flashcard mode features, review UI, filtering, deck-based study
+globs: "**/modes/FlashcardMode.svelte,**/flashcard/**"
+alwaysApply: false
+---
+
+# Flashcard Mode Guidelines
+
+## § 1.0 Overview
+
+In flashcard mode, users review vocabulary and grammar cards created from parsing sessions.
+
+## § 2.0 Actions
+
+| Action | Icon | Description |
+|--------|------|-------------|
+| Create | `AddFlashcards.svelte` | Create new flashcards manually |
+| Filter | `Filter.svelte` | Filter by deck, part of speech, or tag |
+| Save | `SaveNotes.svelte` | Save progress |
+| History | `HistoryView.svelte` | View review history |
+
+## § 3.0 Filter Options
+
+Cards can be filtered by:
+- **Deck**: User-defined smart decks based on tag rules
+- **Part of Speech**: noun, verb, adjective, etc.
+- **Tag**: Topic/semantic tags from vocab notes
+
+## § 4.0 Smart Decks (Option B)
+
+Decks are rule-based views that auto-sync as cards are created:
+- Defined by tag rules (OR logic)
+- Tags remain single source of truth
+- Named, reusable saved filters over flashcard collection
+
+### Deck Document Structure
+```typescript
+{
+  id: string
+  ownerUid: string
+  name: string           // e.g. "Food", "JLPT N4 Nouns"
+  tagRules: string[]     // OR-logic: ["food", "restaurant"]
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+
+### Card Matching
+```typescript
+function cardMatchesDeck(card: Flashcard, deck: Deck): boolean {
+  if (!deck.tagRules?.length) return false
+  if (!card.tags?.length) return false
+  const cardTags = card.tags.map(t => t.trim().toLowerCase())
+  const rules = deck.tagRules.map(t => t.trim().toLowerCase())
+  return rules.some(rule => cardTags.includes(rule))
+}
+```
+
+## § 5.0 Deck Library Modal Views
+
+Three-way toggle (`viewMode: 'scope' | 'tag' | 'deck'`):
+
+| View | Content |
+|------|---------|
+| Scopes | All / Vocab / Grammar |
+| Tags | Derived from `Flashcard.tags` |
+| Decks | User-defined smart decks |
+
+### Deck View Layout
+- Left pane: List of deck names with card counts
+- Right pane: Cards matching the deck's rules
+
+## § 6.0 Flashcard Schema
+
+```typescript
+type Flashcard = {
+  id: string
+  type: 'vocab' | 'grammar'
+  front: string           // Target language
+  back: string            // Native language
+  sentenceText?: string
+  morphemeText?: string
+  pos?: string            // Part of speech
+  tags?: string[]         // Topic tags
+  createdAt: string
+}
+```

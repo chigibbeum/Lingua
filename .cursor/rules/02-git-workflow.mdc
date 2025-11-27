@@ -1,0 +1,36 @@
+---
+description: Git workflow, conventional commits, PR process
+globs: "*"
+alwaysApply: true
+---
+
+# Git Workflow Guidelines
+
+## § 1.1 Commit Message Prefixes
+
+Include scope in parentheses:
+- `fix(auth)`: bug fixes
+- `feat(parsing)`: new features
+- `perf(flashcard)`: performance improvements
+- `docs(readme)`: documentation changes
+- `style(modal)`: formatting changes
+- `refactor(schemas)`: code refactoring
+- `chore(deps)`: maintenance tasks
+
+## § 1.2 Commit Rules
+
+- Use lowercase for commit messages
+- Keep the summary line concise
+- Include description for non-obvious changes
+- Reference issue numbers when applicable
+
+**Example**: `refactor(schemas): extract validation utilities`
+
+## § 2.0 Code Review Process
+
+- Read PR description and linked issues
+- Run build/lint/tests locally if applicable
+- Skim changes for scope creep and unrelated edits
+- Check accessibility on interactive changes
+- Verify keyboard navigation for interactive UI
+- Prefer concrete suggestions and links to guidelines when requesting changes

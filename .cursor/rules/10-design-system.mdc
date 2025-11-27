@@ -1,0 +1,42 @@
+---
+description: Color palette, typography, styling for Lingua UI
+globs: "**/*.svelte"
+alwaysApply: false
+---
+
+# Design System
+
+## § 3.1 Color Palette
+
+**Applicable to all pages unless directed otherwise**
+
+| Token | Color | Usage |
+|-------|-------|-------|
+| Main Background | `#222831` | Page backgrounds |
+| Section/Div | `#31363f` | Cards, modals, containers |
+| Primary Text | `#76abae` | Main text, headings |
+| Secondary Text | `#eeeeee` | Subheadings, labels |
+| Button Background | `#31363f` | Button fills |
+| Button Text | `#eeeeee` | Button labels |
+| Button Hover | `#415780` | Hover states |
+
+## § 3.2 Styling
+
+- `border-radius: 0.35rem;` for all rounded elements
+- Use Tailwind utilities when possible
+- CSS variables for colors in global styles
+
+## § 3.3 Buttons/Icons
+
+- All buttons should be icons unless text is requested
+- Use only icons from `$lib/icons/` folder
+- All icon buttons must have `aria-label`
+- Follow color rules based on placement (navbar, toolbar, modals)
+
+## § 3.4 Accessibility
+
+- Semantic HTML elements (`nav`, `main`, `section`, `article`)
+- ARIA labels on interactive elements
+- Keyboard navigation support (`tabindex`, `on:keydown`)
+- Screen reader announcements via `aria-live="polite"`
+- Focus states with visible outlines

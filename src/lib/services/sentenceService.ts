@@ -13,8 +13,9 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 
-import { db, auth } from '../firebase'
+import { db } from '../firebase/client'
 import { ensureUserDocument } from './userService'
+import { requireUserId } from './authUtils'
 
 import type { SentenceDoc, SentenceNote, SentenceNoteInput } from '../schemas/sentence'
 
@@ -25,14 +26,6 @@ function resolveCreatedAt(value: unknown): string | null {
     return value.toDate().toISOString()
   }
   return typeof value === 'string' ? value : null
-}
-
-function requireUserId(): string {
-  const current = auth.currentUser
-  if (!current?.uid) {
-    throw new Error('Not authenticated')
-  }
-  return current.uid
 }
 
 export async function saveSentence(text: string): Promise<string> {
@@ -70,13 +63,8 @@ export async function listSentences(): Promise<SentenceDoc[]> {
 }
 
 export async function listSentenceNotes(sentenceId: string): Promise<SentenceNote[]> {
-  requireUserId() // Ensure auth
-  const ref = collection(db, 'notes')
-  // Notes are just filtered by sentenceId (and we rely on rules/logic that sentenceId implies ownership if strict)
-  // Or we can add ownerUid here too if we want strictly own notes.
-  // Assuming sentenceId is enough context for now, but typically we'd want ownerUid too for security rules alignment
-  // adding ownerUid makes it easier to secure.
   const uid = requireUserId()
+  const ref = collection(db, 'notes')
   const q = query(
     ref,
     where('sentenceId', '==', sentenceId),

@@ -1,6 +1,6 @@
 ## Flashcard Component — Design & Layout
 
-This document describes the visual design, layout, and interaction patterns for the Flashcard component (`web/src/lib/components/home/Flashcard.svelte`). It is aligned with the FLIP Project Guidelines.
+This document describes the visual design, layout, and interaction patterns for the Flashcard component (`web/src/lib/components/home/Flashcard.svelte`). It is aligned with the LINGUA Project Guidelines.
 
 ### Guideline Alignment
 

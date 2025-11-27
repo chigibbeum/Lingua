@@ -1,0 +1,81 @@
+---
+description: Authentication patterns, locals.uid vs locals.user, session flow
+globs: "**/auth/**,**/stores/auth.ts,**/hooks.server.ts,**/api/session/**"
+alwaysApply: false
+---
+
+# Authentication Patterns
+
+## § 1.0 Authentication Framework
+
+- **Primary Auth**: Firebase Authentication
+- **Session Management**: Server-side via `hooks.server.ts`
+
+## § 2.0 Server Hooks Architecture
+
+**File**: `src/hooks.server.ts`
+
+- Default-deny model: all routes are considered protected unless explicitly allowlisted
+- Public allowlists:
+  - UI: `/`, `/register`, `/login`, `/logout`, `/email-action`, `/pricing`, `/terms`, `/privacy`
+  - API: `/api/auth`, `/api/verification`
+- Assets always allowed: `/_app`, `/build`, `/static`, `/fonts`, `/favicon.ico`
+- Unauthenticated users:
+  - Public UI/API + assets allowed
+  - Non-public API → 401 JSON `{ code: 'UNAUTHENTICATED' }`
+  - Non-public UI → redirect to `/login?redirect=…`
+
+## § 3.0 `locals.uid` vs `locals.user`
+
+**CRITICAL**: Understanding this distinction is essential for security.
+
+### `locals.uid` (Ground Truth)
+
+- **What**: Raw Firebase Authentication user ID from decoded session token
+- **Source**: `hooks.server.ts` from Firebase Auth
+- **Usage**: **MUST** be used for all backend database queries
+
+```typescript
+// ✅ CORRECT: Use locals.uid for database operations
+export const POST = async ({ locals }) => {
+  if (!locals.uid) throw error(401, 'Unauthorized');
+  const userDoc = await db.collection('users').doc(locals.uid).get();
+};
+```
+
+### `locals.user` (UI Profile)
+
+- **What**: Application-specific user profile from Firestore
+- **Usage**: Use for rendering content on client-side
+
+```svelte
+<!-- ✅ CORRECT: Use locals.user for UI rendering -->
+<h1>Welcome, {user.displayName}!</h1>
+```
+
+## § 4.0 Session Flow
+
+1. Client creates Firebase Auth user
+2. Client calls `/api/session` to exchange ID token for server session cookie
+3. Server ensures `users/{uid}` and `settings/{uid}` exist
+4. `hooks.server.ts` enforces gating via session cookie verification
+
+## § 5.0 Auth Store (`src/lib/stores/auth.ts`)
+
+```typescript
+export const user = writable<User | null>(null)
+export const userId = derived(user, u => u ? u.uid : null)
+export const isLoggedIn = derived(user, u => Boolean(u && u.uid))
+export const authReady = writable(false)
+```
+
+- `authReady` prevents premature redirects during session sync
+- `onAuthStateChanged` triggers `syncServerSession()` to keep server/client in sync
+
+## § 6.0 Security Rules
+
+- Never expose `locals.uid` directly to the client-side
+- Always validate user permissions before database operations
+- Use `locals.uid` as the source of truth for all authorization decisions
+- Use `sameSite: 'lax'` for session cookie
+- Client fetches include `credentials: 'include'` when exchanging ID token

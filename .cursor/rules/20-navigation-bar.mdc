@@ -1,0 +1,59 @@
+---
+description: Navigation bar layout, icon order, expand/collapse behavior
+globs: "**/NavigationBar.svelte"
+alwaysApply: false
+---
+
+# Navigation Bar Guidelines
+
+## § 3.3 Navigation Bar
+
+- Horizontal bar fixed to top of page, full width
+- Does not appear on landing page or `Home.svelte`
+- Only appears on `ParseMode.svelte` and `FlashcardMode.svelte`
+
+## § 1.0 States
+
+### Collapsed (Default)
+- Only shows icons
+- Icons centered on navigation bar
+
+### Expanded
+- When `Open.svelte` is clicked, reveals text labels
+- Text appears to the right of each icon
+- Icons shift to accommodate text
+- Icons and text remain centered
+
+## § 2.0 Icon Order (Left to Right)
+
+1. `Open.svelte` / `Collapse.svelte` — Dashboard toggle (far left)
+2. `SentenceLibrary.svelte` — "Sentences"
+3. `DeckLibrary.svelte` — "Decks"
+4. `Settings.svelte` — "Settings"
+5. `HowToUse.svelte` — "How To Use"
+6. `Login.svelte` — "Login" (far right)
+
+## § 3.0 Color Scheme
+
+| Element | Color |
+|---------|-------|
+| Background | `#31363f` |
+| Icons | `#76abae` |
+| Dividers | `#eeeeee` |
+
+## § 4.0 Icon Labels
+
+| Icon | Label |
+|------|-------|
+| `Open.svelte` / `Collapse.svelte` | Dashboard |
+| `SentenceLibrary.svelte` | Sentences |
+| `DeckLibrary.svelte` | Decks |
+| `Settings.svelte` | Settings |
+| `HowToUse.svelte` | How To Use |
+| `Login.svelte` | Login |
+
+## § 5.0 Special Positioning
+
+- Dashboard toggle: Far left
+- Login: Far right
+- All others: Centered between them

@@ -1,10 +1,10 @@
 # System Overview
 
-**FLIP** - Minimal Flashcards Application
+**LINGUA** - Minimal Flashcards Application
 
 ## Purpose
 
-FLIP is a web-based flashcard application designed for language learners to create, organize, and study vocabulary efficiently. The system emphasizes simplicity while incorporating intelligent spaced repetition for optimized learning.
+LINGUA is a web-based flashcard application designed for language learners to create, organize, and study vocabulary efficiently. The system emphasizes simplicity while incorporating intelligent spaced repetition for optimized learning.
 
 ## High-Level Architecture
 
@@ -160,93 +160,33 @@ UI Re-render (Reactive)
 ## File Structure
 
 ```
-web/
+Lingua/
 ├── src/
-│   ├── pages/              # Route pages
-│   │   ├── Landing.svelte
-│   │   ├── Home.svelte
-│   │   ├── Create.svelte
-│   │   ├── Lexicon.svelte
-│   │   ├── Login.svelte
-│   │   ├── Profile.svelte
-│   │   └── Analytics.svelte
-│   │
-│   ├── lib/                # Reusable components & logic
-│   │   ├── components/     # UI components (organized by page)
-│   │   │   ├── analytics/
-│   │   │   │   ├── GraphView.svelte
-│   │   │   │   └── StudyAnalytics.svelte
-│   │   │   ├── create/
-│   │   │   │   ├── FlashcardCreationForm.svelte
-│   │   │   │   ├── FolderManager.svelte
-│   │   │   │   ├── ImportPanel.svelte
-│   │   │   │   └── TagManager.svelte
-│   │   │   ├── home/
-│   │   │   │   ├── ActionBar.svelte
-│   │   │   │   ├── Flashcard.svelte
-│   │   │   │   └── FlashcardSettings.svelte
-│   │   │   ├── lexicon/
-│   │   │   │   ├── AdvancedSearch.svelte
-│   │   │   │   ├── BulkActionsToolbar.svelte
-│   │   │   │   ├── EditFlashcardModal.svelte
-│   │   │   │   ├── FilterMenu.svelte
-│   │   │   │   ├── FlashcardTableView.svelte
-│   │   │   │   └── VirtualScrollList.svelte
-│   │   │   ├── login/
-│   │   │   │   └── SignupForm.svelte
-│   │   │   └── shared/
-│   │   │       ├── Counter.svelte
-│   │   │       ├── KeyboardShortcutsHelp.svelte
-│   │   │       ├── LoadingSpinner.svelte
-│   │   │       ├── NavBar.svelte
-│   │   │       ├── OfflineIndicator.svelte
-│   │   │       ├── PWAInstallPrompt.svelte
-│   │   │       ├── SkeletonScreen.svelte
-│   │   │       └── Toast.svelte
-│   │   │
-│   │   ├── stores/         # State management
-│   │   │   ├── authStore.js
-│   │   │   ├── flashcardsStore.js
-│   │   │   ├── tagsStore.js
-│   │   │   ├── foldersStore.js
-│   │   │   └── settingsStore.js
-│   │   │
-│   │   ├── db/             # Database operations
-│   │   │   ├── flashcards.js
-│   │   │   ├── reviews.js
-│   │   │   └── userStats.js
-│   │   │
-│   │   ├── profile/        # Profile page components
-│   │   │   ├── PersonalInfoSettings.svelte
-│   │   │   ├── CreateSettings.svelte
-│   │   │   ├── AccountManagement.svelte
-│   │   │   ├── StatsActivity.svelte
-│   │   │   └── FlashcardTableModal.svelte
-│   │   │
-│   │   └── utils/          # Utility functions (organized by page)
-│   │       ├── analytics/
-│   │       │   ├── graphBuilder.js
-│   │       │   └── studyAnalytics.js
-│   │       ├── create/
-│   │       │   └── importer.js
-│   │       ├── lexicon/
-│   │       │   ├── bulkOperations.js
-│   │       │   ├── searchUtils.js
-│   │       │   └── sorting.js
-│   │       └── shared/
-│   │           └── keyboardShortcuts.js
-│   │
-│   ├── firebase.js         # Firebase initialization
-│   ├── routes.js           # Route configuration
-│   ├── app.css             # Global styles
-│   └── main.js             # App entry point
-│
-├── documentation/          # Project documentation
-│   ├── architecture/       # Architecture docs (this folder)
-│   ├── agent-guidelines/   # Development guidelines
-│   └── implementation-plans/
-│
-└── package.json
+│   ├── app.css                    # Global styles (imported by +layout)
+│   ├── app.html                   # Root HTML template
+│   ├── lib/                       # Domain + UI code
+│   │   ├── components/
+│   │   │   ├── create/            # Flashcard creation helpers
+│   │   │   ├── layout/            # Navigation bar + toolbar
+│   │   │   ├── modes/             # ParseMode + FlashcardMode shells
+│   │   │   ├── modals/            # Sentence/Deck/Settings/Note modals
+│   │   │   ├── parse/             # Action panes embedded in ParseMode
+│   │   │   ├── ui/                # Low-level primitives (checkbox, select…)
+│   │   │   └── views/             # Landing/Home/Login/Profile views
+│   │   ├── icons/                 # Svelte icon components (see §4.5.1)
+│   │   ├── schemas/               # Zod/TS schemas for domain objects
+│   │   ├── services/              # Firebase-facing data services
+│   │   ├── stores/                # Smart stores (auth, router, session…)
+│   │   └── utils.ts               # Shared helpers
+│   ├── routes/
+│   │   ├── +layout.svelte         # Root shell (imports CSS + Firebase)
+│   │   └── +page.svelte           # Single routed page that renders views
+│   └── shims/…                    # Type shims
+├── documentation/                 # Architecture + guidelines (this folder)
+├── package.json
+├── svelte.config.js
+├── tsconfig.json
+└── vite.config.ts
 ```
 
 ## Technology Stack

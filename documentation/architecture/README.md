@@ -1,6 +1,6 @@
-# FLIP Architecture Documentation
+# LINGUA Architecture Documentation
 
-Welcome to the FLIP architecture documentation. This directory contains comprehensive documentation of the system's architecture, design decisions, and technical implementation.
+Welcome to the LINGUA architecture documentation. This directory contains comprehensive documentation of the system's architecture, design decisions, and technical implementation.
 
 ## 📚 Documentation Index
 

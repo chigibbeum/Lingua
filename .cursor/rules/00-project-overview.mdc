@@ -1,0 +1,41 @@
+---
+description: Core AI agent instructions and Lingua project overview
+globs: "*"
+alwaysApply: true
+---
+
+# Project Guidelines
+
+## § 1.0 Instructions for AI Agent
+
+When carrying out tasks for this project, you MUST:
+- Reference relevant sections from these guidelines when making decisions
+- Explicitly mention which sections (by number and name) you are following
+- Consult the Architecture Documentation before making significant changes
+- Adhere to the Code Review Standards for all code contributions
+- Follow the Design System for all UI/UX work
+- Git: use Conventional Commits with scope and follow git-workflow guidelines
+
+## § 2.0 Project Overview
+
+LINGUA is a minimal language learning app for sentence parsing and flashcard review. The goal is **simplicity**—no feature bloat, no membership required. Users can:
+- Type/paste sentences and parse them into morphemes
+- Add vocabulary and grammar notes to parsed text
+- Create flashcards from notes
+- Organize with tags and decks
+- Study on laptop and mobile devices
+
+## § 2.1 Technology Stack
+
+- **Framework**: Svelte 5 with SvelteKit
+- **Backend**: Firebase (Auth, Firestore)
+- **Styling**: Tailwind CSS + scoped component styles
+- **Language**: TypeScript
+
+## § 2.2 Architecture References
+
+When making significant changes, consult:
+- `documentation/architecture/00-system-overview.md` — high-level architecture
+- `documentation/architecture/01-data-architecture.md` — Firestore schema, stores
+- `documentation/architecture/02-authentication-system.md` — auth flows
+- `documentation/architecture/04-component-architecture.md` — component patterns

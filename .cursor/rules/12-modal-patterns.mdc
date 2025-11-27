@@ -1,0 +1,79 @@
+---
+description: Split-view modal UI pattern, accessibility, CSS
+globs: "**/modals/**/*.svelte"
+alwaysApply: false
+---
+
+# Modal Patterns
+
+## § 1.0 Split-View Modal Pattern
+
+Used for library/detail modals (SentenceLibraryModal, DeckLibraryModal):
+- Left pane: scrollable selectable list (listbox pattern)
+- Right pane: details of selected item with loading/empty/error states
+
+## § 2.0 Anatomy
+
+- Modal backdrop and container: `role="dialog"`, `aria-modal="true"`
+- Fixed max height; scroll within panes, not the page
+- Header: title + close button
+- Split view grid: `grid-template-columns: 1fr 2fr`
+- Footer: primary action(s), typically Close button
+
+## § 3.0 Behavior
+
+- Two levels of loading/error:
+  - Global list state (`isLoading`/`error`)
+  - Scoped detail state (`isLoadingDetail`/`detailError`)
+- Selecting an item loads its details
+- Backdrop click closes; inner container uses `on:click|stopPropagation`
+
+## § 4.0 Accessibility
+
+- Dialog semantics: `role="dialog"`, `aria-modal="true"`, clear title
+- Group split view with `role="group"` and `aria-label`
+- Left list uses listbox pattern:
+  - `ul[role="listbox"]` and `li[role="option"]`
+  - `aria-selected` on options
+  - Keyboard focus via `tabindex="0"` and visible `:focus-visible` styles
+- Announce selected detail updates via `aria-live="polite"`
+
+## § 5.0 Layout and Styling
+
+```css
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.modal {
+  background: #31363f;
+  color: #eeeeee;
+  width: min(960px, 92vw);
+  max-height: 80vh;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  min-height: 360px;
+  overflow: hidden;
+}
+```
+
+## § 6.0 Visual Language
+
+- Accent: `#76abae` for hover/selection outlines
+- Subtle separators: `rgba(238, 238, 238, 0.08)` borders
+- Radii: 6–8px; compact paddings; restrained hover states

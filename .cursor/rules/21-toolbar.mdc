@@ -1,0 +1,57 @@
+---
+description: Toolbar modes, icon groups, mode switching behavior
+globs: "**/Toolbar.svelte"
+alwaysApply: false
+---
+
+# Toolbar Guidelines
+
+## § 3.5 Toolbar
+
+## § 1.0 Color Scheme
+
+| Element | Color |
+|---------|-------|
+| Background | `#31363f` |
+| Icons | `#eeeeee` |
+| Active Mode Highlight | `#76abae` |
+
+## § 2.0 Layout Schema
+
+- Center vertical divider separates fixed icons from mode-specific icons
+- **Left of divider**: `Abc.svelte` (Parsing) and `FlashcardMode.svelte` (Flashcard)
+- **Right of divider**: Context-specific icons based on current mode
+
+### Centering
+- Use `flex` with `justify-content: center`
+- Inner div uses background color with `px-6` padding (24px, one icon width)
+
+### Mode Switch Highlight
+- Active mode icon gets background color `#76abae`
+
+### Dynamic Right Side
+- Render conditionally: `mode === 'parsing'` or `mode === 'flashcard'`
+- Width adapts instantly when mode changes
+
+## § 3.0 Parsing Mode Icons (Right of Divider)
+
+1. `NewText.svelte` — Add new text
+2. `ParseText.svelte` — Parse text
+3. `EditText.svelte` — Edit text
+4. `CreateFlashcards.svelte` — Create flashcard from sentence
+5. `SaveNotes.svelte` — Save
+6. `HistoryView.svelte` — History
+
+## § 4.0 Flashcard Mode Icons (Right of Divider)
+
+1. `AddFlashcards.svelte` — Create cards
+2. `Filter.svelte` — Filter cards
+3. `SaveNotes.svelte` — Save
+4. `HistoryView.svelte` — History
+
+## § 5.0 Mode Switching
+
+- Use single state variable (`mode`) to control display
+- Toolbar position remains fixed; size adjusts based on icon count
+- Outer boundary must remain stable to prevent page jumps
+- Use `transition-all duration-500` on inner wrapper for smooth transitions

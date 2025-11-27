@@ -1,0 +1,29 @@
+---
+description: Client UI conventions — Svelte 5, accessibility, icons, forms, design
+globs:
+  - src/**/*.svelte
+intent: Consistent, accessible UI aligned with design system
+---
+
+- Svelte 5 only — use runes (`$state`, `$derived`, `$props`), Snippets for child content; no legacy syntax.
+- Accessibility: guarantee keyboard navigation, ARIA labels, and focus management for all interactive elements.
+- Icons: use icon components from `src/lib/icons/`; always include `aria-label` prop for buttons.
+- Forms: validate with Zod schemas from `$lib/schemas/`; display field-coupled errors inline.
+- Design system: follow color tokens in `src/app.css` and the design system rules (§ 3.0 in project guidelines).
+- Before drafting new components or major UI changes, run `mcp_svelte_list-sections` and fetch relevant guidance with `mcp_svelte_get-documentation` to align with Svelte best practices.
+- Before returning any new or updated `.svelte` code, run `mcp_svelte_svelte-autofixer` and incorporate required fixes.
+- Formatting: expand long attribute lists vertically; keep `<style>` selectors and declarations on separate lines; prefer descriptive names.
+- Mode transitions: use `transition-all duration-500` for seamless mode switching between Parse and Flashcard modes.
+- Modals: follow the split-view modal pattern from `12-modal-patterns.mdc`; ensure escape key and click-outside dismissal.
+- Color conventions:
+  - Background: `#222831` (main), `#31363f` (sections/buttons)
+  - Text: `#76abae` (primary), `#eeeeee` (secondary)
+  - Icons: `#76abae` (nav bar), `#eeeeee` (toolbar)
+  - Hover: `#415780` (buttons)
+
+Docs (attach on demand):
+  - documentation/architecture/04-component-architecture.md
+  - documentation/design-system.md
+  - .cursor/rules/10-design-system.mdc
+  - .cursor/rules/11-icon-usage.mdc
+  - .cursor/rules/12-modal-patterns.mdc

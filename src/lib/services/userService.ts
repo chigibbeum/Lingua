@@ -8,8 +8,11 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 
-import { auth, db } from '../firebase'
+import { auth, db } from '../firebase/client'
 import { user as authUserStore } from '../stores/auth'
+import type { UserProfile, UsernameClaim } from '../schemas/user'
+
+export type { UserProfile, UsernameClaim }
 
 function normalizeUsername(raw: string): string {
   const trimmed = String(raw ?? '')

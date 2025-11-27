@@ -1,41 +1,67 @@
+// Nice-to-have: Consider server-side API routes for sensitive mutations to fully leverage locals.uid as ground truth
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerUid) {
+      return isAuthenticated() && ownerUid == request.auth.uid;
+    }
+
     // Allow each authenticated user to read/write their own user profile doc
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Allow each authenticated user to manage their own sentences
-    match /users/{userId}/sentences/{sentenceId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // User sessions live under /users/{userId}/sessions/{sessionId}
+    match /users/{userId}/sessions/{sessionId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Allow the same user to manage notes under their sentences
-    match /users/{userId}/sentences/{sentenceId}/notes/{noteId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Top-level sentences collection (`collection(db, 'sentences')`)
+    // All sentences use ownerUid field for access control
+    match /sentences/{sentenceId} {
+      allow read, update, delete: if isOwner(resource.data.ownerUid);
+      allow create: if isOwner(request.resource.data.ownerUid);
     }
 
-    // Allow each authenticated user to manage their own flashcards
-    match /users/{userId}/flashcards/{cardId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null &&
-                    request.auth.uid == userId &&
-                    request.resource.data.ownerUid == request.auth.uid;
-    }
-
-    // Collection group-style rule for notes anywhere in the DB.
-    // - Anyone can read public notes
-    // - Only the owner can write/update/delete their notes
-    match /{path=**}/notes/{noteId} {
+    // Top-level notes collection (`collection(db, 'notes')`)
+    // Notes reference sentences via sentenceId field
+    // Supports public/private visibility for community sharing
+    match /notes/{noteId} {
+      // Public notes readable by anyone authenticated; private notes only by owner
       allow read: if resource.data.visibility == 'public' ||
-                  (request.auth != null && request.auth.uid == resource.data.ownerUid);
-      allow create: if request.auth != null &&
-                    request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if request.auth != null &&
-                            request.auth.uid == resource.data.ownerUid;
+                  isOwner(resource.data.ownerUid);
+      allow create: if isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isOwner(resource.data.ownerUid);
+    }
+
+    // Top-level flashcards collection (`collection(db, 'flashcards')`)
+    match /flashcards/{cardId} {
+      allow read, update, delete: if isOwner(resource.data.ownerUid);
+      allow create: if isOwner(request.resource.data.ownerUid);
+    }
+
+    // Settings collection (document ID = user's UID)
+    // Server creates these via Admin SDK, but client may read them
+    match /settings/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Usernames collection (for uniqueness claims)
+    // Used by claimUsername() in userService.ts
+    match /usernames/{username} {
+      // Anyone authenticated can read (to check availability)
+      allow read: if isAuthenticated();
+      // Only allow create if owner matches the authenticated user
+      allow create: if isAuthenticated() && 
+                       request.resource.data.ownerUid == request.auth.uid;
+      // Owner can delete their own username claim
+      allow delete: if isOwner(resource.data.ownerUid);
+      // Prevent updates (username claims should be immutable)
+      allow update: if false;
     }
   }
 }
-
-

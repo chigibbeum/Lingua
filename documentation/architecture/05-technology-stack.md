@@ -2,7 +2,7 @@
 
 ## Overview
 
-FLIP is built with modern web technologies focused on developer experience, performance, and scalability. The stack emphasizes real-time capabilities, serverless architecture, and rapid development.
+LINGUA is built with modern web technologies focused on developer experience, performance, and scalability. The stack emphasizes real-time capabilities, serverless architecture, and rapid development.
 
 ## Frontend Stack
 
@@ -100,48 +100,70 @@ export default defineConfig({
 
 ### Routing
 
-#### svelte-spa-router 4.0.1
+#### SvelteKit File-Based Router
 
-**Why SPA Router:**
+**Why SvelteKit routing:**
 
-- ✅ Hash-based routing (Firebase Hosting compatible)
-- ✅ Simple configuration
-- ✅ Lightweight (~4KB)
-- ✅ Programmatic navigation
-- ✅ Route guards support (future)
+- ✅ Nested layouts keep global chrome (`+layout.svelte`) separate from feature views.
+- ✅ Built-in data loading (`+page.ts`, `+page.server.ts`) composes cleanly with the domain stores.
+- ✅ Progressive enhancement (anchors first, `goto` for SPA-like transitions) with zero hash routing.
+- ✅ Out-of-the-box adapter compatibility (Firebase Hosting via `adapter-static` in this repo).
 
-**Route Configuration:**
+**Layout & page structure:**
 
-```javascript
-// routes.js
-export const routes = {
-  '/': Home,
-  '/login': Login,
-  '/lexicon': Lexicon,
-  '/profile': Profile
+```
+src/routes/
+├── +layout.svelte   # imports app.css, XYFlow styles, Firebase init
+└── +page.svelte     # subscribes to router/auth stores and renders the correct view
+```
+
+```svelte
+<!-- src/routes/+layout.svelte -->
+<script lang="ts">
+  import '../app.css'
+  import '@xyflow/svelte/dist/style.css'
+  import '../lib/firebase/client'
+</script>
+
+{@render children()}
+```
+
+```ts
+// src/routes/+page.ts
+import { redirect } from '@sveltejs/kit'
+import { base } from '$app/paths'
+
+export const load = () => {
+  throw redirect(307, `${base}/landing`)
 }
-
-// App.svelte
-import Router from 'svelte-spa-router'
-import { routes } from './routes'
-
-<Router {routes} />
 ```
 
-**Navigation:**
+**Navigation patterns:**
 
-```javascript
-// Programmatic
-location.hash = '#/lexicon'
+```svelte
+<script lang="ts">
+  import { goto } from '$app/navigation'
+  import { base } from '$app/paths'
 
-// Link
-<a href="#/lexicon">Lexicon</a>
-
-// Button
-<button on:click={() => location.hash = '#/lexicon'}>
-  Go to Lexicon
-</button>
+  export function handleNavigate(route: 'parse' | 'flashcard') {
+    goto(`${base}/${route === 'parse' ? 'parse' : 'flashcard'}`)
+  }
+</script>
 ```
+
+- UI surfaces stay accessible by using semantic `<a>` or `<button>` elements, but the actual view swap is handled by filesystem routes via `goto` (see `Home.svelte` and the toolbar handlers).
+- When we introduce additional filesystem routes (e.g., `/profile`), continue to trigger navigation with `$app/navigation` while leaving static `<a href="/profile">Profile</a>` links for progressive enhancement.
+
+**Data loading hooks:**
+
+- Use `src/routes/+page.ts` when the view needs preload data or to redirect before the component renders.
+- Server-only data belongs in `+page.server.ts` so secrets never reach the browser.
+- `load` functions can read from Svelte stores or Firebase SDKs and pass the results to the component via props.
+- `(protected)/+layout.server.ts` exposes any cookie/session hints to authenticated routes (future home for Firebase Admin verification).
+- `(protected)/home/+page.ts` snapshots `DashboardSnapshot` (active mode, totals, recent history, prefs) so `Home.svelte` can render stats instantly.
+- `(protected)/parse/+page.ts` (client-side loader, `ssr = false`) grabs the current `sessionStore` value, recent parse history, and saved sentences via `sentenceService`.
+- `(protected)/flashcard/+page.ts` (client-side loader) preloads `listFlashcards()` and the latest flashcard history so `FlashcardMode` can render without a second fetch.
+- `src/routes/api/session/+server.ts` works with Firebase Admin to issue HTTP-only session cookies so server loaders can trust `event.locals.user`.
 
 ### Data Visualization
 

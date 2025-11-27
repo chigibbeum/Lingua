@@ -5,17 +5,9 @@ import {
   type SentenceNote,
 } from './sentenceService'
 
-export type RecentVocabNote = {
-  id: string
-  sentenceId: string
-  sentenceText: string
-  morphemeText?: string
-  target: string
-  native: string
-  pos?: string
-  tags?: string[]
-  createdAt: string | null
-}
+import type { RecentVocabNote } from '../schemas/note'
+
+export type { RecentVocabNote }
 
 export async function listRecentVocabNotes(limitN = 7): Promise<RecentVocabNote[]> {
   const sentences: SentenceDoc[] = await listSentences()

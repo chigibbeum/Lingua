@@ -2,7 +2,7 @@
 
 ## Overview
 
-FLIP uses Firebase Authentication to provide secure, multi-method user authentication with session persistence and state management through Svelte stores.
+LINGUA uses Firebase Authentication to provide secure, multi-method user authentication with session persistence and state management through Svelte stores.
 
 ## Architecture
 

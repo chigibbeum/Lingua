@@ -1,7 +1,7 @@
 <script lang="ts">
-  import HistoryView from '@icons/HistoryView.svelte'
-  import CloseIcon from '@icons/XIcon.svelte'
-  import FilterIcon from '@icons/Filter.svelte'
+  import HistoryView from '$lib/icons/HistoryView.svelte'
+  import CloseIcon from '$lib/icons/XIcon.svelte'
+  import FilterIcon from '$lib/icons/Filter.svelte'
 
   import { historyStore, type HistoryEntry } from '../stores/history'
 

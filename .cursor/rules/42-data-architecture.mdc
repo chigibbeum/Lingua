@@ -1,0 +1,136 @@
+---
+description: Firestore schema, ownerUid pattern, service layer conventions
+globs: "**/services/**,**/schemas/**,firestore.rules"
+alwaysApply: false
+---
+
+# Data Architecture
+
+## § 1.0 Firestore Collections
+
+### `flashcards`
+```typescript
+{
+  id: string              // Firestore doc ID
+  type: 'vocab' | 'grammar'
+  front: string           // Target language
+  back: string            // Native language
+  ownerUid: string        // User ID (indexed)
+  sentenceText?: string
+  morphemeText?: string
+  sentenceId?: string
+  morphemeId?: string
+  pos?: string            // Part of speech
+  tags?: string[]         // Topic tags
+  createdAt: Timestamp
+}
+```
+
+### `sentences`
+```typescript
+{
+  id: string
+  text: string
+  ownerUid: string        // User ID (indexed)
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+
+### `notes`
+```typescript
+{
+  id: string
+  ownerUid: string
+  sentenceId: string
+  type: 'vocab' | 'grammar'
+  visibility: 'public' | 'private'
+  createdAt: Timestamp
+}
+```
+
+### `users`
+```typescript
+{
+  uid: string             // Firebase Auth UID
+  displayName?: string
+  email?: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+
+### `settings`
+```typescript
+{
+  // Document ID = user's UID
+  userId: string
+  // User preferences
+}
+```
+
+## § 2.0 Security Pattern
+
+**All documents use `ownerUid` field for access control:**
+
+```javascript
+// Firestore rules pattern
+function isOwner(ownerUid) {
+  return request.auth != null && ownerUid == request.auth.uid;
+}
+
+allow read, update, delete: if isOwner(resource.data.ownerUid);
+allow create: if isOwner(request.resource.data.ownerUid);
+```
+
+## § 3.0 Service Layer Conventions
+
+Services in `$lib/services/` must:
+
+### Authentication Check
+```typescript
+function requireUserId(): string {
+  const current = auth.currentUser
+  if (!current?.uid) {
+    throw new Error('Not authenticated')
+  }
+  return current.uid
+}
+```
+
+### Document Creation
+```typescript
+await addDoc(ref, {
+  // ... document fields
+  ownerUid: uid,          // Always set ownerUid
+  createdAt: serverTimestamp(),
+})
+```
+
+### User-Scoped Queries
+```typescript
+const q = query(
+  base,
+  where('ownerUid', '==', uid),  // Always filter by owner
+  orderBy('createdAt', 'desc')
+)
+```
+
+## § 4.0 Type Safety
+
+- Use TypeScript types from `$lib/schemas/`
+- Document types should have `Doc` suffix (e.g., `FlashcardDoc`)
+- Client types omit Firestore-specific fields like `Timestamp`
+- Use `resolveCreatedAt()` helper to convert Timestamp to ISO string
+
+## § 5.0 Error Handling
+
+Handle missing composite indexes gracefully:
+```typescript
+try {
+  // Query with orderBy
+} catch (caught) {
+  // Check for failed-precondition or index error
+  // Fallback to client-side sorting if needed
+}
+```
